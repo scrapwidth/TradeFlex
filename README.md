@@ -13,18 +13,18 @@ TradeFlex is a platform designed for individual traders who want to build, test,
 
 ## Running the Project (Initial Guidance)
 
-The codebase currently contains only documentation, but it is intended to be Python-based. A typical setup would look like:
+This repository now includes an initial .NET solution (`TradeFlex.sln`) with a core class library. If starting fresh, you could recreate it with the following commands:
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt  # placeholder, to be defined
+dotnet new sln -n TradeFlex
+dotnet new classlib -n TradeFlex.Core
+dotnet sln add TradeFlex.Core/TradeFlex.Core.csproj
 ```
 
-Backtests and algorithms would live under a `tradeflex` package. Example usage might be:
+Backtests and algorithms will live under the `TradeFlex` namespace. Example usage might be:
 
 ```bash
-python -m tradeflex.backtest --algorithm examples/simple_algo.py --data data/historical.csv
+dotnet run --project TradeFlex.Backtest --algo Examples/SimpleAlgo.cs --data data/historical.csv
 ```
 
 ## Development Roadmap
@@ -33,8 +33,40 @@ python -m tradeflex.backtest --algorithm examples/simple_algo.py --data data/his
    - Define a base class with methods such as `on_tick`, `on_order_filled`, and `on_exit`.
    - Allow runtime discovery of algorithms via an `algorithms` directory so new strategies can be swapped in easily.
 
+### Example Algorithm Interface
+
+Below is a minimal C# implementation of the interface described above. It uses
+abstract and virtual methods so each strategy can override the necessary hooks:
+
+```csharp
+namespace TradeFlex.Core;
+
+public abstract class BaseAlgorithm
+{
+    /// <summary>Called once before any ticks are processed.</summary>
+    public virtual void OnStart(IContext context) {}
+
+    /// <summary>Handle a new market tick.</summary>
+    public abstract void OnTick(Tick tick);
+
+    /// <summary>React to an order fill event.</summary>
+    public abstract void OnOrderFilled(Order order);
+
+    /// <summary>Clean up resources before shutdown.</summary>
+    public abstract void OnExit();
+}
+
+```
+
+Algorithms implementing this interface should live under an `algorithms/`
+directory so the framework can discover and load them dynamically at runtime.
+
+For a deeper discussion about how this interface will evolve and how algorithms
+are driven by incoming events, see
+[docs/algorithm_interface_design.md](docs/algorithm_interface_design.md).
+
 2. **Integrate with a Backtest Framework**
-   - Choose an engine (e.g., `backtrader`, `zipline`, or a minimal custom module) that can feed historical data into algorithms.
+   - Choose an engine (e.g., `Lean`, `StockSharp`, or a minimal custom module) that can feed historical data into algorithms.
    - Ensure the interface is generic enough to plug in future data sources.
 
 3. **Manually Test Simple Algorithm with the Backtester**
@@ -42,7 +74,7 @@ python -m tradeflex.backtest --algorithm examples/simple_algo.py --data data/his
    - Execute it against sample historical data, verifying trade signals and order handling.
 
 4. **Add Unit Tests**
-   - Use `pytest` to test algorithm logic and the backtest process.
+   - Use `xUnit` (or a similar .NET testing library) to test algorithm logic and the backtest process.
    - Include tests for edge cases such as empty data sets and erroneous algorithm behavior.
 
 5. **Shadow Trading Design**
