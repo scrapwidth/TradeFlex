@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TradeFlex.Tests", "TradeFle
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TradeFlex.SampleStrategies", "TradeFlex.SampleStrategies\TradeFlex.SampleStrategies.csproj", "{7BF11E7D-DE4C-4C1E-B2E3-96C47FAE8187}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TradeFlex.Backtest", "TradeFlex.Backtest\TradeFlex.Backtest.csproj", "{C89F45EF-440D-45EE-854F-739DC9A4C670}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,5 +35,9 @@ Global
 		{7BF11E7D-DE4C-4C1E-B2E3-96C47FAE8187}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7BF11E7D-DE4C-4C1E-B2E3-96C47FAE8187}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7BF11E7D-DE4C-4C1E-B2E3-96C47FAE8187}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C89F45EF-440D-45EE-854F-739DC9A4C670}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C89F45EF-440D-45EE-854F-739DC9A4C670}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C89F45EF-440D-45EE-854F-739DC9A4C670}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C89F45EF-440D-45EE-854F-739DC9A4C670}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
