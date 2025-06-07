@@ -30,7 +30,7 @@ dotnet run --project TradeFlex.Backtest --algo Examples/SimpleAlgo.cs --data dat
 ## Development Roadmap
 
 1. **Generate a Comprehensive Algorithm Interface**
-   - Define a base class with methods such as `on_tick`, `on_order_filled`, and `on_exit`.
+   - Define `ITradingAlgorithm` with hooks such as `OnBar`, `OnEntry`, `OnExit`, and `OnRiskCheck`.
    - Allow runtime discovery of algorithms via an `algorithms` directory so new strategies can be swapped in easily.
 
 ### Example Algorithm Interface
@@ -39,23 +39,16 @@ Below is a minimal C# implementation of the interface described above. It uses
 abstract and virtual methods so each strategy can override the necessary hooks:
 
 ```csharp
-namespace TradeFlex.Core;
+namespace TradeFlex.Abstractions;
 
-public abstract class BaseAlgorithm
+public interface ITradingAlgorithm
 {
-    /// <summary>Called once before any ticks are processed.</summary>
-    public virtual void OnStart(IContext context) {}
-
-    /// <summary>Handle a new market tick.</summary>
-    public abstract void OnTick(Tick tick);
-
-    /// <summary>React to an order fill event.</summary>
-    public abstract void OnOrderFilled(Order order);
-
-    /// <summary>Clean up resources before shutdown.</summary>
-    public abstract void OnExit();
+    void Initialize();
+    void OnBar(Bar bar);
+    void OnEntry(Order order);
+    void OnExit();
+    bool OnRiskCheck(Order order);
 }
-
 ```
 
 Algorithms implementing this interface should live under an `algorithms/`
