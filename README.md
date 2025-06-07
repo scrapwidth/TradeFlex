@@ -64,6 +64,14 @@ are driven by incoming events, see
 
 3. **Manually Test Simple Algorithm with the Backtester**
    - Create a trivial algorithm (e.g., moving average crossover).
+     A ready-made example is provided in `TradeFlex.SampleStrategies`:
+
+     ```csharp
+     using TradeFlex.SampleStrategies;
+
+     var algo = new SimpleSmaCrossoverAlgorithm(fastPeriod: 5, slowPeriod: 20);
+     ```
+
    - Execute it against sample historical data, verifying trade signals and order handling.
 
 4. **Add Unit Tests**
