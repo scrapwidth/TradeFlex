@@ -12,13 +12,17 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageReference Include="Parquet.Net" Version="5.1.1" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\TradeFlex.Abstractions\TradeFlex.Abstractions.csproj" />
     <ProjectReference Include="..\TradeFlex.Core\TradeFlex.Core.csproj" />
     <ProjectReference Include="..\TradeFlex.SampleStrategies\TradeFlex.SampleStrategies.csproj" />
+    <ProjectReference Include="..\TradeFlex.Backtest\TradeFlex.Backtest.csproj" />
   </ItemGroup>
+
+
 
   <ItemGroup>
     <Using Include="Xunit" />
