@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TradeFlex.Core", "TradeFlex
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TradeFlex.Abstractions", "TradeFlex.Abstractions\TradeFlex.Abstractions.csproj", "{FC90120B-6497-4229-A521-E977F973A404}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TradeFlex.Tests", "TradeFlex.Tests\TradeFlex.Tests.csproj", "{740FD459-EB83-4542-820D-7437F358FF65}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,5 +23,9 @@ Global
 		{FC90120B-6497-4229-A521-E977F973A404}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FC90120B-6497-4229-A521-E977F973A404}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FC90120B-6497-4229-A521-E977F973A404}.Release|Any CPU.Build.0 = Release|Any CPU
+		{740FD459-EB83-4542-820D-7437F358FF65}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{740FD459-EB83-4542-820D-7437F358FF65}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{740FD459-EB83-4542-820D-7437F358FF65}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{740FD459-EB83-4542-820D-7437F358FF65}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
