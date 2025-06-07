@@ -1,5 +1,7 @@
 # TradeFlex
 
+![Coverage](docs/coverage/badge_shieldsio_linecoverage_green.svg)
+
 TradeFlex is a platform designed for individual traders who want to build, test, and eventually deploy algorithmic trading strategies. This repository outlines the initial goals, design considerations, and development roadmap.
 
 ## Project Goals
