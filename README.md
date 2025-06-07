@@ -23,7 +23,15 @@ dotnet new classlib -n TradeFlex.Core
 dotnet sln add TradeFlex.Core/TradeFlex.Core.csproj
 ```
 
-Backtests and algorithms will live under the `TradeFlex` namespace. Example usage might be:
+### Using the CLI
+
+Run commands through the `TradeFlex.Cli` project using `dotnet run`:
+
+```bash
+dotnet run --project TradeFlex.Cli -- [command] [options]
+```
+
+Example back-test:
 
 ```bash
 dotnet run --project TradeFlex.Cli -- backtest --algo path/to/Algo.dll --data path/to/minute.parquet --from 2024-01-01 --to 2024-01-02
