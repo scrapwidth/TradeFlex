@@ -53,3 +53,28 @@ public record Bar(DateTime Timestamp, decimal Open, decimal High, decimal Low, d
 /// <param name="Quantity">The quantity to trade.</param>
 /// <param name="Price">The price of the order.</param>
 public record Order(string Symbol, int Quantity, decimal Price);
+
+/// <summary>
+/// Direction for an order or trade.
+/// </summary>
+public enum OrderSide
+{
+    /// <summary>
+    /// A buy order.
+    /// </summary>
+    Buy,
+
+    /// <summary>
+    /// A sell order.
+    /// </summary>
+    Sell
+}
+
+/// <summary>
+/// Represents an executed trade.
+/// </summary>
+/// <param name="Symbol">The traded instrument.</param>
+/// <param name="Quantity">The number of shares or contracts.</param>
+/// <param name="Price">The execution price.</param>
+/// <param name="Side">Whether the trade was a buy or sell.</param>
+public record Trade(string Symbol, int Quantity, decimal Price, OrderSide Side);
