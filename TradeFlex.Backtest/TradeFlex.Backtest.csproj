@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\TradeFlex.Abstractions\TradeFlex.Abstractions.csproj" />
+    <ProjectReference Include="..\TradeFlex.Core\TradeFlex.Core.csproj" />
   </ItemGroup>
 
 </Project>
