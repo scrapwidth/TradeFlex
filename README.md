@@ -24,10 +24,8 @@ dotnet sln add TradeFlex.Core/TradeFlex.Core.csproj
 Backtests and algorithms will live under the `TradeFlex` namespace. Example usage might be:
 
 ```bash
-dotnet run --project TradeFlex.Backtest --algo Examples/SimpleAlgo.cs --data data/historical.csv
+dotnet run --project TradeFlex.Cli -- backtest --algo path/to/Algo.dll --data path/to/minute.parquet --from 2024-01-01 --to 2024-01-02
 ```
-
-## Development Roadmap
 
 1. **Generate a Comprehensive Algorithm Interface**
    - Define `ITradingAlgorithm` with hooks such as `OnBar`, `OnEntry`, `OnExit`, and `OnRiskCheck`.
