@@ -1,13 +1,24 @@
+using TradeFlex.Abstractions;
+
 namespace TradeFlex.Core;
 
-public abstract class BaseAlgorithm
+/// <summary>
+/// Base class implementing <see cref="ITradingAlgorithm"/> with no-op defaults.
+/// </summary>
+public abstract class BaseAlgorithm : ITradingAlgorithm
 {
-    public virtual void OnStart(IContext context) { }
-    public abstract void OnTick(Tick tick);
-    public abstract void OnOrderFilled(Order order);
-    public abstract void OnExit();
-}
+    /// <inheritdoc />
+    public virtual void Initialize() { }
 
-public interface IContext { }
-public record Tick(decimal Price);
-public record Order(string Symbol, int Quantity, decimal Price);
+    /// <inheritdoc />
+    public abstract void OnBar(Bar bar);
+
+    /// <inheritdoc />
+    public abstract void OnEntry(Order order);
+
+    /// <inheritdoc />
+    public abstract void OnExit();
+
+    /// <inheritdoc />
+    public abstract bool OnRiskCheck(Order order);
+}
