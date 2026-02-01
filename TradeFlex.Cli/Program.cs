@@ -8,12 +8,16 @@ using TradeFlex.BrokerAdapters;
 using TradeFlex.SampleStrategies;
 
 // Common algorithm options
-var algoOption = new Option<string>("--algo", "Algorithm name: SMA, RSI") { IsRequired = true };
+var algoOption = new Option<string>("--algo", "Algorithm name: SMA, RSI, MARTINGALE") { IsRequired = true };
 var fastPeriodOption = new Option<int>("--fast-period", () => 5, "SMA fast period (default: 5)");
 var slowPeriodOption = new Option<int>("--slow-period", () => 20, "SMA slow period (default: 20)");
 var rsiPeriodOption = new Option<int>("--rsi-period", () => 14, "RSI period (default: 14)");
 var oversoldOption = new Option<int>("--oversold", () => 30, "RSI oversold threshold (default: 30)");
 var overboughtOption = new Option<int>("--overbought", () => 70, "RSI overbought threshold (default: 70)");
+// Martingale parameters
+var basePosOption = new Option<decimal>("--base-pos", () => 0.05m, "Martingale base position % (default: 5%)");
+var takeProfitOption = new Option<decimal>("--take-profit", () => 0.02m, "Martingale take profit % (default: 2%)");
+var stopLossOption = new Option<decimal>("--stop-loss", () => 0.01m, "Martingale stop loss % (default: 1%)");
 
 // Backtest-specific options
 var dataOption = new Option<string>("--data", "Path to Parquet file") { IsRequired = true };
@@ -32,7 +36,10 @@ var backtest = new Command("backtest", "Run a historical back-test")
     slowPeriodOption,
     rsiPeriodOption,
     oversoldOption,
-    overboughtOption
+    overboughtOption,
+    basePosOption,
+    takeProfitOption,
+    stopLossOption
 };
 
 backtest.SetHandler(async (InvocationContext ctx) =>
@@ -47,8 +54,11 @@ backtest.SetHandler(async (InvocationContext ctx) =>
     var rsiPeriod = ctx.ParseResult.GetValueForOption(rsiPeriodOption);
     var oversold = ctx.ParseResult.GetValueForOption(oversoldOption);
     var overbought = ctx.ParseResult.GetValueForOption(overboughtOption);
+    var basePos = ctx.ParseResult.GetValueForOption(basePosOption);
+    var takeProfit = ctx.ParseResult.GetValueForOption(takeProfitOption);
+    var stopLoss = ctx.ParseResult.GetValueForOption(stopLossOption);
 
-    var algorithm = CreateAlgorithm(algo, fastPeriod, slowPeriod, rsiPeriod, oversold, overbought);
+    var algorithm = CreateAlgorithm(algo, fastPeriod, slowPeriod, rsiPeriod, oversold, overbought, basePos, takeProfit, stopLoss);
     var start = from ?? DateTime.UtcNow;
     var clock = new SimulationClock(start, TimeSpan.FromMinutes(1));
     var engine = new BacktestEngine(clock);
@@ -66,6 +76,10 @@ backtest.SetHandler(async (InvocationContext ctx) =>
     else if (algo.ToUpper() == "RSI")
     {
         Console.WriteLine($"Parameters:        Period={rsiPeriod}, Oversold={oversold}, Overbought={overbought}");
+    }
+    else if (algo.ToUpper() == "MARTINGALE")
+    {
+        Console.WriteLine($"Parameters:        Base={basePos:P0}, TP={takeProfit:P0}, SL={stopLoss:P0}");
     }
     Console.WriteLine($"Initial Cash:      ${result.InitialCash:N2}");
     Console.WriteLine($"Final Equity:      ${result.FinalEquity:N2}");
@@ -92,7 +106,10 @@ var shadow = new Command("shadow", "Run a shadow trading session")
     slowPeriodOption,
     rsiPeriodOption,
     oversoldOption,
-    overboughtOption
+    overboughtOption,
+    basePosOption,
+    takeProfitOption,
+    stopLossOption
 };
 
 shadow.SetHandler(async (InvocationContext ctx) =>
@@ -105,8 +122,11 @@ shadow.SetHandler(async (InvocationContext ctx) =>
     var rsiPeriod = ctx.ParseResult.GetValueForOption(rsiPeriodOption);
     var oversold = ctx.ParseResult.GetValueForOption(oversoldOption);
     var overbought = ctx.ParseResult.GetValueForOption(overboughtOption);
+    var basePos = ctx.ParseResult.GetValueForOption(basePosOption);
+    var takeProfit = ctx.ParseResult.GetValueForOption(takeProfitOption);
+    var stopLoss = ctx.ParseResult.GetValueForOption(stopLossOption);
 
-    var algorithm = CreateAlgorithm(algo, fastPeriod, slowPeriod, rsiPeriod, oversold, overbought);
+    var algorithm = CreateAlgorithm(algo, fastPeriod, slowPeriod, rsiPeriod, oversold, overbought, basePos, takeProfit, stopLoss);
 
     // Create broker based on selection
     IBroker broker = brokerType.ToLower() switch
@@ -119,13 +139,14 @@ shadow.SetHandler(async (InvocationContext ctx) =>
     await ShadowRunner.RunAsync(algorithm, symbol, broker);
 });
 
-static ITradingAlgorithm CreateAlgorithm(string name, int fastPeriod, int slowPeriod, int rsiPeriod, int oversold, int overbought)
+static ITradingAlgorithm CreateAlgorithm(string name, int fastPeriod, int slowPeriod, int rsiPeriod, int oversold, int overbought, decimal basePos, decimal takeProfit, decimal stopLoss)
 {
     return name.ToUpper() switch
     {
         "SMA" => new SimpleSmaCrossoverAlgorithm(fastPeriod, slowPeriod),
         "RSI" => new RsiMeanReversionAlgorithm(rsiPeriod, oversold, overbought),
-        _ => throw new ArgumentException($"Unknown algorithm: {name}. Available: SMA, RSI")
+        "MARTINGALE" => new MartingaleAlgorithm(5, basePos, takeProfit, stopLoss),
+        _ => throw new ArgumentException($"Unknown algorithm: {name}. Available: SMA, RSI, MARTINGALE")
     };
 }
 
