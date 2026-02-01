@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using TradeFlex.Abstractions;
 
 namespace TradeFlex.Core;
@@ -42,10 +43,10 @@ public class PaperBroker : IBroker
     }
 
     /// <inheritdoc />
-    public void SubmitOrder(Order order)
+    public Task SubmitOrderAsync(Order order)
     {
         var fillPrice = order.Price;
-        
+
         // If market order (price 0), use the last known market price
         if (fillPrice <= 0)
         {
@@ -56,19 +57,19 @@ public class PaperBroker : IBroker
             else
             {
                 Console.WriteLine($"[PaperBroker] Warning: No market price for {order.Symbol}. Cannot fill market order.");
-                return;
+                return Task.CompletedTask;
             }
         }
 
         var notionalValue = fillPrice * Math.Abs(order.Quantity);
         var fee = notionalValue * _feePercentage;
         var totalCost = notionalValue + fee;
-        
+
         // Basic validation for buys
         if (order.Quantity > 0 && _cash < totalCost)
         {
             Console.WriteLine($"[PaperBroker] Insufficient funds. Need {totalCost:C}, have {_cash:C}");
-            return;
+            return Task.CompletedTask;
         }
 
         // Update Cash (always deduct fee)
@@ -94,25 +95,29 @@ public class PaperBroker : IBroker
         var side = order.Quantity > 0 ? OrderSide.Buy : OrderSide.Sell;
         var trade = new Trade(order.Symbol, Math.Abs(order.Quantity), fillPrice, side);
         _trades.Add(trade);
-        
+
         Console.WriteLine($"[PaperBroker] Filled {side} {Math.Abs(order.Quantity):F8} {order.Symbol} @ {fillPrice:F2}. Fee: {fee:F2}. Cash: {_cash:F2}");
+
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc />
-    public decimal GetPosition(string symbol)
+    public Task<decimal> GetPositionAsync(string symbol)
     {
-        return _positions.TryGetValue(symbol, out var qty) ? qty : 0;
+        var position = _positions.TryGetValue(symbol, out var qty) ? qty : 0;
+        return Task.FromResult(position);
     }
 
     /// <inheritdoc />
-    public decimal GetAccountBalance()
+    public Task<decimal> GetAccountBalanceAsync()
     {
-        return _cash;
+        return Task.FromResult(_cash);
     }
 
     /// <inheritdoc />
-    public IReadOnlyDictionary<string, decimal> GetOpenPositions()
+    public Task<IReadOnlyDictionary<string, decimal>> GetOpenPositionsAsync()
     {
-        return new Dictionary<string, decimal>(_positions);
+        IReadOnlyDictionary<string, decimal> result = new Dictionary<string, decimal>(_positions);
+        return Task.FromResult(result);
     }
 }

@@ -17,7 +17,11 @@ public class BacktestEngineTests
     private sealed class CountingAlgorithm : BaseAlgorithm
     {
         public int Count { get; private set; }
-        public override void OnBar(Bar bar) => Count++;
+        public override Task OnBarAsync(Bar bar)
+        {
+            Count++;
+            return Task.CompletedTask;
+        }
     }
 
     [Fact]

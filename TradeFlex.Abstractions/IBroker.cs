@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace TradeFlex.Abstractions;
 
@@ -8,27 +9,27 @@ namespace TradeFlex.Abstractions;
 public interface IBroker
 {
     /// <summary>
-    /// Submits an order to the broker.
+    /// Submits an order to the broker asynchronously.
     /// </summary>
     /// <param name="order">The order to submit.</param>
-    void SubmitOrder(Order order);
+    Task SubmitOrderAsync(Order order);
 
     /// <summary>
-    /// Gets the current position for a symbol (supports fractional quantities).
+    /// Gets the current position for a symbol (supports fractional quantities) asynchronously.
     /// </summary>
     /// <param name="symbol">The symbol.</param>
     /// <returns>The current position (positive for long, negative for short).</returns>
-    decimal GetPosition(string symbol);
+    Task<decimal> GetPositionAsync(string symbol);
 
     /// <summary>
-    /// Gets the current cash balance of the account.
+    /// Gets the current cash balance of the account asynchronously.
     /// </summary>
     /// <returns>The cash balance.</returns>
-    decimal GetAccountBalance();
+    Task<decimal> GetAccountBalanceAsync();
 
     /// <summary>
-    /// Gets all open positions (supports fractional quantities).
+    /// Gets all open positions (supports fractional quantities) asynchronously.
     /// </summary>
     /// <returns>A dictionary of symbol to quantity.</returns>
-    IReadOnlyDictionary<string, decimal> GetOpenPositions();
+    Task<IReadOnlyDictionary<string, decimal>> GetOpenPositionsAsync();
 }

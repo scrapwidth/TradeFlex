@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using TradeFlex.Abstractions;
 using TradeFlex.Core;
 using TradeFlex.SampleStrategies;
@@ -19,12 +20,12 @@ public class SimpleSmaCrossoverAlgorithmTests
     }
 
     [Fact]
-    public void DefaultConstructor_UsesPeriods5And20()
+    public async Task DefaultConstructor_UsesPeriods5And20()
     {
         var algo = new SimpleSmaCrossoverAlgorithm();
         var broker = new PaperBroker(10000m, feePercentage: 0m);
         var context = new TestContext(broker);
-        algo.Initialize(context);
+        await algo.InitializeAsync(context);
 
         // With default periods (5, 20), need at least 20 bars to have full windows
         // This just verifies no exceptions are thrown
@@ -32,54 +33,54 @@ public class SimpleSmaCrossoverAlgorithmTests
     }
 
     [Fact]
-    public void Initialize_ClearsState()
+    public async Task Initialize_ClearsState()
     {
         var broker = new PaperBroker(10000m, feePercentage: 0m);
         var context = new TestContext(broker);
         var algo = new SimpleSmaCrossoverAlgorithm(2, 3);
 
         // Run some bars
-        algo.Initialize(context);
+        await algo.InitializeAsync(context);
         broker.UpdatePrice(Symbol, 10m);
-        algo.OnBar(CreateBar(10m));
-        algo.OnBar(CreateBar(20m));
-        algo.OnBar(CreateBar(30m));
+        await algo.OnBarAsync(CreateBar(10m));
+        await algo.OnBarAsync(CreateBar(20m));
+        await algo.OnBarAsync(CreateBar(30m));
 
         // Re-initialize should clear state
-        algo.Initialize(context);
+        await algo.InitializeAsync(context);
         broker.UpdatePrice(Symbol, 100m);
 
         // After re-init, windows should be empty - no crossover should occur on first bar
-        algo.OnBar(CreateBar(100m));
+        await algo.OnBarAsync(CreateBar(100m));
 
         // Should have no new trades after re-init (only trades from before)
         Assert.True(broker.Trades.Count <= 1);
     }
 
     [Fact]
-    public void OnBar_NotEnoughData_NoTrades()
+    public async Task OnBar_NotEnoughData_NoTrades()
     {
         var broker = new PaperBroker(10000m, feePercentage: 0m);
         var context = new TestContext(broker);
         var algo = new SimpleSmaCrossoverAlgorithm(2, 3);
 
-        algo.Initialize(context);
+        await algo.InitializeAsync(context);
         broker.UpdatePrice(Symbol, 100m);
 
         // Only one bar - not enough data for crossover
-        algo.OnBar(CreateBar(100m));
+        await algo.OnBarAsync(CreateBar(100m));
 
         Assert.Empty(broker.Trades);
     }
 
     [Fact]
-    public void BullishCrossover_GeneratesBuySignal()
+    public async Task BullishCrossover_GeneratesBuySignal()
     {
         var broker = new PaperBroker(10000m, feePercentage: 0m);
         var context = new TestContext(broker);
         var algo = new SimpleSmaCrossoverAlgorithm(2, 3);
 
-        algo.Initialize(context);
+        await algo.InitializeAsync(context);
 
         // Create a bullish crossover scenario:
         // Prices: 10, 10, 10, 20, 30
@@ -88,92 +89,92 @@ public class SimpleSmaCrossoverAlgorithmTests
         // Crossover when fast > slow
 
         broker.UpdatePrice(Symbol, 10m);
-        algo.OnBar(CreateBar(10m));
+        await algo.OnBarAsync(CreateBar(10m));
 
         broker.UpdatePrice(Symbol, 10m);
-        algo.OnBar(CreateBar(10m));
+        await algo.OnBarAsync(CreateBar(10m));
 
         broker.UpdatePrice(Symbol, 10m);
-        algo.OnBar(CreateBar(10m));
+        await algo.OnBarAsync(CreateBar(10m));
 
         broker.UpdatePrice(Symbol, 20m);
-        algo.OnBar(CreateBar(20m));
+        await algo.OnBarAsync(CreateBar(20m));
 
         broker.UpdatePrice(Symbol, 30m);
-        algo.OnBar(CreateBar(30m));
+        await algo.OnBarAsync(CreateBar(30m));
 
         // Should have at least one buy trade
         Assert.Contains(broker.Trades, t => t.Side == OrderSide.Buy);
     }
 
     [Fact]
-    public void BearishCrossover_GeneratesSellSignal()
+    public async Task BearishCrossover_GeneratesSellSignal()
     {
         var broker = new PaperBroker(10000m, feePercentage: 0m);
         var context = new TestContext(broker);
         var algo = new SimpleSmaCrossoverAlgorithm(2, 3);
 
-        algo.Initialize(context);
+        await algo.InitializeAsync(context);
 
         // First create a bullish crossover to establish a position
         broker.UpdatePrice(Symbol, 10m);
-        algo.OnBar(CreateBar(10m));
+        await algo.OnBarAsync(CreateBar(10m));
 
         broker.UpdatePrice(Symbol, 10m);
-        algo.OnBar(CreateBar(10m));
+        await algo.OnBarAsync(CreateBar(10m));
 
         broker.UpdatePrice(Symbol, 10m);
-        algo.OnBar(CreateBar(10m));
+        await algo.OnBarAsync(CreateBar(10m));
 
         broker.UpdatePrice(Symbol, 30m);
-        algo.OnBar(CreateBar(30m));
+        await algo.OnBarAsync(CreateBar(30m));
 
         broker.UpdatePrice(Symbol, 50m);
-        algo.OnBar(CreateBar(50m));
+        await algo.OnBarAsync(CreateBar(50m));
 
         // Should have a position now from bullish crossover
-        var positionAfterBuy = broker.GetPosition(Symbol);
+        var positionAfterBuy = await broker.GetPositionAsync(Symbol);
         Assert.True(positionAfterBuy > 0, "Expected position after bullish crossover");
 
         // Now create bearish crossover: prices drop
         broker.UpdatePrice(Symbol, 20m);
-        algo.OnBar(CreateBar(20m));
+        await algo.OnBarAsync(CreateBar(20m));
 
         broker.UpdatePrice(Symbol, 10m);
-        algo.OnBar(CreateBar(10m));
+        await algo.OnBarAsync(CreateBar(10m));
 
         broker.UpdatePrice(Symbol, 5m);
-        algo.OnBar(CreateBar(5m));
+        await algo.OnBarAsync(CreateBar(5m));
 
         // Position should be closed (sold)
-        Assert.Equal(0m, broker.GetPosition(Symbol));
+        Assert.Equal(0m, await broker.GetPositionAsync(Symbol));
         Assert.Contains(broker.Trades, t => t.Side == OrderSide.Sell);
     }
 
     [Fact]
-    public void BuySignal_Uses10PercentOfCash()
+    public async Task BuySignal_Uses10PercentOfCash()
     {
         var broker = new PaperBroker(10000m, feePercentage: 0m);
         var context = new TestContext(broker);
         var algo = new SimpleSmaCrossoverAlgorithm(2, 3);
 
-        algo.Initialize(context);
+        await algo.InitializeAsync(context);
 
         // Generate bullish crossover
         broker.UpdatePrice(Symbol, 10m);
-        algo.OnBar(CreateBar(10m));
+        await algo.OnBarAsync(CreateBar(10m));
 
         broker.UpdatePrice(Symbol, 10m);
-        algo.OnBar(CreateBar(10m));
+        await algo.OnBarAsync(CreateBar(10m));
 
         broker.UpdatePrice(Symbol, 10m);
-        algo.OnBar(CreateBar(10m));
+        await algo.OnBarAsync(CreateBar(10m));
 
         broker.UpdatePrice(Symbol, 30m);
-        algo.OnBar(CreateBar(30m));
+        await algo.OnBarAsync(CreateBar(30m));
 
         broker.UpdatePrice(Symbol, 50m);
-        algo.OnBar(CreateBar(50m));
+        await algo.OnBarAsync(CreateBar(50m));
 
         // With 10000 cash and price at 50, should buy roughly 10000 * 0.10 / 50 = 20 shares
         var buyTrade = broker.Trades.FirstOrDefault(t => t.Side == OrderSide.Buy);
@@ -185,175 +186,175 @@ public class SimpleSmaCrossoverAlgorithmTests
     }
 
     [Fact]
-    public void SellSignal_ExitsEntirePosition()
+    public async Task SellSignal_ExitsEntirePosition()
     {
         var broker = new PaperBroker(10000m, feePercentage: 0m);
         var context = new TestContext(broker);
         var algo = new SimpleSmaCrossoverAlgorithm(2, 3);
 
-        algo.Initialize(context);
+        await algo.InitializeAsync(context);
 
         // Create bullish crossover
         broker.UpdatePrice(Symbol, 10m);
-        algo.OnBar(CreateBar(10m));
-        algo.OnBar(CreateBar(10m));
-        algo.OnBar(CreateBar(10m));
+        await algo.OnBarAsync(CreateBar(10m));
+        await algo.OnBarAsync(CreateBar(10m));
+        await algo.OnBarAsync(CreateBar(10m));
 
         broker.UpdatePrice(Symbol, 50m);
-        algo.OnBar(CreateBar(50m));
-        algo.OnBar(CreateBar(50m));
+        await algo.OnBarAsync(CreateBar(50m));
+        await algo.OnBarAsync(CreateBar(50m));
 
-        var positionAfterBuy = broker.GetPosition(Symbol);
+        var positionAfterBuy = await broker.GetPositionAsync(Symbol);
         Assert.True(positionAfterBuy > 0);
 
         // Create bearish crossover
         broker.UpdatePrice(Symbol, 10m);
-        algo.OnBar(CreateBar(10m));
-        algo.OnBar(CreateBar(10m));
-        algo.OnBar(CreateBar(10m));
+        await algo.OnBarAsync(CreateBar(10m));
+        await algo.OnBarAsync(CreateBar(10m));
+        await algo.OnBarAsync(CreateBar(10m));
 
         // Position should be fully closed
-        Assert.Equal(0m, broker.GetPosition(Symbol));
+        Assert.Equal(0m, await broker.GetPositionAsync(Symbol));
     }
 
     [Fact]
-    public void SellSignal_NoPosition_NoTrade()
+    public async Task SellSignal_NoPosition_NoTrade()
     {
         var broker = new PaperBroker(10000m, feePercentage: 0m);
         var context = new TestContext(broker);
         var algo = new SimpleSmaCrossoverAlgorithm(2, 3);
 
-        algo.Initialize(context);
+        await algo.InitializeAsync(context);
 
         // Start with high prices so fast > slow
         broker.UpdatePrice(Symbol, 100m);
-        algo.OnBar(CreateBar(100m));
-        algo.OnBar(CreateBar(100m));
-        algo.OnBar(CreateBar(100m));
+        await algo.OnBarAsync(CreateBar(100m));
+        await algo.OnBarAsync(CreateBar(100m));
+        await algo.OnBarAsync(CreateBar(100m));
 
         // Now drop to create bearish crossover (but no position to sell)
         broker.UpdatePrice(Symbol, 10m);
-        algo.OnBar(CreateBar(10m));
-        algo.OnBar(CreateBar(10m));
+        await algo.OnBarAsync(CreateBar(10m));
+        await algo.OnBarAsync(CreateBar(10m));
 
         // No sells should have occurred since no position
         Assert.DoesNotContain(broker.Trades, t => t.Side == OrderSide.Sell);
     }
 
     [Fact]
-    public void NoCrossover_NoTrades()
+    public async Task NoCrossover_NoTrades()
     {
         var broker = new PaperBroker(10000m, feePercentage: 0m);
         var context = new TestContext(broker);
         var algo = new SimpleSmaCrossoverAlgorithm(2, 3);
 
-        algo.Initialize(context);
+        await algo.InitializeAsync(context);
 
         // Flat prices - no crossover
         broker.UpdatePrice(Symbol, 100m);
-        algo.OnBar(CreateBar(100m));
-        algo.OnBar(CreateBar(100m));
-        algo.OnBar(CreateBar(100m));
-        algo.OnBar(CreateBar(100m));
-        algo.OnBar(CreateBar(100m));
+        await algo.OnBarAsync(CreateBar(100m));
+        await algo.OnBarAsync(CreateBar(100m));
+        await algo.OnBarAsync(CreateBar(100m));
+        await algo.OnBarAsync(CreateBar(100m));
+        await algo.OnBarAsync(CreateBar(100m));
 
         // No trades when price is flat (both SMAs equal)
         Assert.Empty(broker.Trades);
     }
 
     [Fact]
-    public void MultipleCrossovers_GeneratesMultipleTrades()
+    public async Task MultipleCrossovers_GeneratesMultipleTrades()
     {
         var broker = new PaperBroker(100000m, feePercentage: 0m);
         var context = new TestContext(broker);
         var algo = new SimpleSmaCrossoverAlgorithm(2, 4);
 
-        algo.Initialize(context);
+        await algo.InitializeAsync(context);
 
         // First crossover up
         broker.UpdatePrice(Symbol, 10m);
-        algo.OnBar(CreateBar(10m));
-        algo.OnBar(CreateBar(10m));
-        algo.OnBar(CreateBar(10m));
-        algo.OnBar(CreateBar(10m));
+        await algo.OnBarAsync(CreateBar(10m));
+        await algo.OnBarAsync(CreateBar(10m));
+        await algo.OnBarAsync(CreateBar(10m));
+        await algo.OnBarAsync(CreateBar(10m));
 
         broker.UpdatePrice(Symbol, 30m);
-        algo.OnBar(CreateBar(30m));
+        await algo.OnBarAsync(CreateBar(30m));
 
         broker.UpdatePrice(Symbol, 50m);
-        algo.OnBar(CreateBar(50m));
+        await algo.OnBarAsync(CreateBar(50m));
 
         var tradesAfterFirstCrossover = broker.Trades.Count;
         Assert.True(tradesAfterFirstCrossover >= 1);
 
         // Crossover down
         broker.UpdatePrice(Symbol, 20m);
-        algo.OnBar(CreateBar(20m));
+        await algo.OnBarAsync(CreateBar(20m));
 
         broker.UpdatePrice(Symbol, 10m);
-        algo.OnBar(CreateBar(10m));
+        await algo.OnBarAsync(CreateBar(10m));
 
         broker.UpdatePrice(Symbol, 5m);
-        algo.OnBar(CreateBar(5m));
+        await algo.OnBarAsync(CreateBar(5m));
 
         // Second crossover up
         broker.UpdatePrice(Symbol, 30m);
-        algo.OnBar(CreateBar(30m));
+        await algo.OnBarAsync(CreateBar(30m));
 
         broker.UpdatePrice(Symbol, 60m);
-        algo.OnBar(CreateBar(60m));
+        await algo.OnBarAsync(CreateBar(60m));
 
         // Should have multiple trades from multiple crossovers
         Assert.True(broker.Trades.Count > tradesAfterFirstCrossover);
     }
 
     [Fact]
-    public void CustomPeriods_AreRespected()
+    public async Task CustomPeriods_AreRespected()
     {
         var broker = new PaperBroker(10000m, feePercentage: 0m);
         var context = new TestContext(broker);
         var algo = new SimpleSmaCrossoverAlgorithm(3, 5);
 
-        algo.Initialize(context);
+        await algo.InitializeAsync(context);
 
         // With period 3 and 5, need more bars to fill windows
         broker.UpdatePrice(Symbol, 10m);
         for (int i = 0; i < 5; i++)
         {
-            algo.OnBar(CreateBar(10m));
+            await algo.OnBarAsync(CreateBar(10m));
         }
 
         // Now create bullish crossover
         broker.UpdatePrice(Symbol, 50m);
-        algo.OnBar(CreateBar(50m));
-        algo.OnBar(CreateBar(50m));
-        algo.OnBar(CreateBar(50m));
+        await algo.OnBarAsync(CreateBar(50m));
+        await algo.OnBarAsync(CreateBar(50m));
+        await algo.OnBarAsync(CreateBar(50m));
 
         // Should trigger buy
         Assert.Contains(broker.Trades, t => t.Side == OrderSide.Buy);
     }
 
     [Fact]
-    public void OnExit_CanBeCalled()
+    public async Task OnExit_CanBeCalled()
     {
         var algo = new SimpleSmaCrossoverAlgorithm();
         var broker = new PaperBroker(10000m);
         var context = new TestContext(broker);
 
-        algo.Initialize(context);
-        algo.OnExit(); // Should not throw
+        await algo.InitializeAsync(context);
+        await algo.OnExitAsync(); // Should not throw
 
         Assert.True(true); // If we get here, no exception was thrown
     }
 
     [Fact]
-    public void OnRiskCheck_ReturnsTrue()
+    public async Task OnRiskCheck_ReturnsTrue()
     {
         var algo = new SimpleSmaCrossoverAlgorithm();
         var broker = new PaperBroker(10000m);
         var context = new TestContext(broker);
 
-        algo.Initialize(context);
+        await algo.InitializeAsync(context);
 
         var order = new Order(Symbol, 10m, 100m);
         var result = algo.OnRiskCheck(order);

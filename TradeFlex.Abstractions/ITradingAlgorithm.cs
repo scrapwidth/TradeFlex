@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+
 namespace TradeFlex.Abstractions;
 
 /// <summary>
@@ -6,21 +8,21 @@ namespace TradeFlex.Abstractions;
 public interface ITradingAlgorithm
 {
     /// <summary>
-    /// Called once before any bars are processed.
+    /// Called once before any bars are processed asynchronously.
     /// </summary>
     /// <param name="context">The algorithm context.</param>
-    void Initialize(IAlgorithmContext context);
+    Task InitializeAsync(IAlgorithmContext context);
 
     /// <summary>
-    /// Invoked for each incoming bar of market data.
+    /// Invoked for each incoming bar of market data asynchronously.
     /// </summary>
     /// <param name="bar">The latest bar.</param>
-    void OnBar(Bar bar);
+    Task OnBarAsync(Bar bar);
 
     /// <summary>
-    /// Called when the algorithm shuts down.
+    /// Called when the algorithm shuts down asynchronously.
     /// </summary>
-    void OnExit();
+    Task OnExitAsync();
 
     /// <summary>
     /// Performs a risk check before an order is submitted.

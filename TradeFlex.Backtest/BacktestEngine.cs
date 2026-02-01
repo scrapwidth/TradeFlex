@@ -36,7 +36,7 @@ public sealed class BacktestEngine
         var context = new AlgorithmContext(broker);
         var equityCurve = new List<decimal> { initialCash };
 
-        algorithm.Initialize(context);
+        await algorithm.InitializeAsync(context);
 
         await foreach (var bar in ParquetBarDataLoader.LoadAsync(dataFile, symbol))
         {
@@ -51,19 +51,19 @@ public sealed class BacktestEngine
 
             _clock.Advance();
             broker.UpdatePrice(symbol, bar.Close);
-            algorithm.OnBar(bar);
+            await algorithm.OnBarAsync(bar);
 
             // Track equity curve for drawdown calculation
             // Equity = cash + position value at current market price
-            var position = broker.GetPosition(symbol);
+            var position = await broker.GetPositionAsync(symbol);
             var positionValue = position * bar.Close;
-            var equity = broker.GetAccountBalance() + positionValue;
+            var equity = await broker.GetAccountBalanceAsync() + positionValue;
             equityCurve.Add(equity);
         }
 
-        algorithm.OnExit();
+        await algorithm.OnExitAsync();
 
-        var finalCash = broker.GetAccountBalance();
+        var finalCash = await broker.GetAccountBalanceAsync();
         return new BacktestResult(broker.Trades.ToList(), initialCash, finalCash, equityCurve);
     }
 

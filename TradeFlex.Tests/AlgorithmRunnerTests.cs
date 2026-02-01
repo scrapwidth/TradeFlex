@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using TradeFlex.Abstractions;
 using TradeFlex.Core;
 using TradeFlex.SampleStrategies;
@@ -7,7 +8,7 @@ namespace TradeFlex.Tests;
 public class AlgorithmRunnerTests
 {
     [Fact]
-    public void AlgorithmRunnerRunsSmaSample()
+    public async Task AlgorithmRunnerRunsSmaSample()
     {
         var bars = new List<Bar>
         {
@@ -17,7 +18,7 @@ public class AlgorithmRunnerTests
             new("SAMPLE", DateTime.UtcNow, 4, 4, 4, 4, 100),
         };
 
-        var trades = AlgorithmRunner.Run<SimpleSmaCrossoverAlgorithm>(bars, 2, 3);
+        var trades = await AlgorithmRunner.RunAsync<SimpleSmaCrossoverAlgorithm>(bars, 2, 3);
 
         Assert.NotNull(trades);
     }
@@ -51,7 +52,7 @@ public class AlgorithmRunnerTests
     }
 
     [Fact]
-    public void Run_WithAlgorithmInstance_ReturnsTradesList()
+    public async Task Run_WithAlgorithmInstance_ReturnsTradesList()
     {
         var bars = new List<Bar>
         {
@@ -62,14 +63,14 @@ public class AlgorithmRunnerTests
         };
 
         var algo = new SimpleSmaCrossoverAlgorithm(2, 3);
-        var trades = AlgorithmRunner.Run(algo, bars);
+        var trades = await AlgorithmRunner.RunAsync(algo, bars);
 
         Assert.NotNull(trades);
         Assert.IsType<List<Trade>>(trades);
     }
 
     [Fact]
-    public void Run_ExecutesAlgorithmLifecycle()
+    public async Task Run_ExecutesAlgorithmLifecycle()
     {
         var bars = new List<Bar>
         {
@@ -81,7 +82,7 @@ public class AlgorithmRunnerTests
         };
 
         // With periods 2,3, this should generate trades due to crossover
-        var trades = AlgorithmRunner.Run<SimpleSmaCrossoverAlgorithm>(bars, 2, 3);
+        var trades = await AlgorithmRunner.RunAsync<SimpleSmaCrossoverAlgorithm>(bars, 2, 3);
 
         // Verify trades were generated
         Assert.NotNull(trades);

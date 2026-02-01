@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Alpaca.Markets;
 using TradeFlex.Abstractions;
@@ -15,31 +14,43 @@ public class AlpacaBroker : IBroker
     private readonly IAlpacaTradingClient _client;
     private readonly Dictionary<string, decimal> _positions = new();
     private decimal _cashBalance;
+    private readonly bool _usePaperTrading;
+
+    /// <summary>
+    /// Creates an AlpacaBroker instance asynchronously.
+    /// </summary>
+    /// <param name="configuration">The Alpaca configuration.</param>
+    /// <returns>A configured AlpacaBroker instance.</returns>
+    public static async Task<AlpacaBroker> CreateAsync(AlpacaConfiguration configuration)
+    {
+        var broker = new AlpacaBroker(configuration);
+        await broker.SyncAccountStateAsync();
+        Console.WriteLine($"[AlpacaBroker] Connected to Alpaca ({(configuration.UsePaperTrading ? "Paper" : "Live")} Trading)");
+        Console.WriteLine($"[AlpacaBroker] Initial Cash: {broker._cashBalance:C}");
+        return broker;
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AlpacaBroker"/> class.
+    /// Use CreateAsync for proper initialization.
     /// </summary>
     /// <param name="configuration">The Alpaca configuration.</param>
-    public AlpacaBroker(AlpacaConfiguration configuration)
+    private AlpacaBroker(AlpacaConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(configuration);
 
+        _usePaperTrading = configuration.UsePaperTrading;
+
         // Create Alpaca client based on paper/live setting
         var secretKey = new SecretKey(configuration.ApiKeyId, configuration.SecretKey);
-        
+
         _client = configuration.UsePaperTrading
             ? Environments.Paper.GetAlpacaTradingClient(secretKey)
             : Environments.Live.GetAlpacaTradingClient(secretKey);
-
-        // Initialize positions and balance from Alpaca account
-        SyncAccountState().Wait();
-
-        Console.WriteLine($"[AlpacaBroker] Connected to Alpaca ({(configuration.UsePaperTrading ? "Paper" : "Live")} Trading)");
-        Console.WriteLine($"[AlpacaBroker] Initial Cash: {_cashBalance:C}");
     }
 
     /// <inheritdoc />
-    public void SubmitOrder(Order order)
+    public async Task SubmitOrderAsync(Order order)
     {
         try
         {
@@ -51,11 +62,11 @@ public class AlpacaBroker : IBroker
             absQuantity = Math.Round(absQuantity, 8);
 
             // Fetch asset details to check fractionability
-            try 
+            try
             {
-                var asset = _client.GetAssetAsync(order.Symbol).Result;
+                var asset = await _client.GetAssetAsync(order.Symbol);
                 Console.WriteLine($"[AlpacaBroker] Asset {asset.Symbol}: Fractionable={asset.Fractionable}, Tradable={asset.IsTradable}, Marginable={asset.Marginable}");
-                
+
                 if (asset.Fractionable == false && absQuantity % 1 != 0)
                 {
                     Console.WriteLine($"[AlpacaBroker] WARNING: Asset {asset.Symbol} is NOT fractionable, but order quantity is {absQuantity}. Order will likely fail.");
@@ -80,7 +91,7 @@ public class AlpacaBroker : IBroker
                 );
 
                 // Submit order to Alpaca
-                var result = _client.PostOrderAsync(orderRequest).Result;
+                var result = await _client.PostOrderAsync(orderRequest);
                 Console.WriteLine($"[AlpacaBroker] Order submitted: {result.OrderId} - {side} {absQuantity:F8} {order.Symbol} (Status: {result.OrderStatus})");
             }
             catch (Exception ex) when (ex.Message.Contains("qty must be integer") || (ex.InnerException?.Message.Contains("qty must be integer") ?? false))
@@ -89,7 +100,7 @@ public class AlpacaBroker : IBroker
                 Console.WriteLine("[AlpacaBroker] Fractional order failed (qty must be integer).");
                 Console.WriteLine("[AlpacaBroker] TIP: Try RESETTING your Paper Account in the Alpaca Dashboard to fix this.");
                 Console.WriteLine("[AlpacaBroker] Attempting integer quantity fallback...");
-                
+
                 var intQuantity = (long)Math.Floor(absQuantity);
                 if (intQuantity > 0)
                 {
@@ -100,8 +111,8 @@ public class AlpacaBroker : IBroker
                         OrderType.Market,
                         TimeInForce.Gtc
                     );
-                    
-                    var result = _client.PostOrderAsync(orderRequest).Result;
+
+                    var result = await _client.PostOrderAsync(orderRequest);
                     Console.WriteLine($"[AlpacaBroker] Integer order submitted: {result.OrderId} - {side} {intQuantity} {order.Symbol} (Status: {result.OrderStatus})");
                 }
                 else
@@ -112,48 +123,50 @@ public class AlpacaBroker : IBroker
             }
 
             // Wait a moment for the order to fill
-            Task.Delay(1000).Wait();
+            await Task.Delay(1000);
 
             // Sync positions after order
-            SyncAccountState().Wait();
-            
+            await SyncAccountStateAsync();
+
             Console.WriteLine($"[AlpacaBroker] Current cash: {_cashBalance:C}");
         }
         catch (Exception ex)
         {
             Console.Error.WriteLine($"[AlpacaBroker] Order submission failed: {ex.Message}");
-            
+
             if (ex.InnerException != null)
             {
                 Console.Error.WriteLine($"[AlpacaBroker] Inner exception: {ex.InnerException.Message}");
             }
-            
+
             Console.WriteLine($"[AlpacaBroker] Continuing despite order failure...");
         }
     }
 
     /// <inheritdoc />
-    public decimal GetPosition(string symbol)
+    public Task<decimal> GetPositionAsync(string symbol)
     {
-        return _positions.TryGetValue(symbol, out var quantity) ? quantity : 0m;
+        var position = _positions.TryGetValue(symbol, out var quantity) ? quantity : 0m;
+        return Task.FromResult(position);
     }
 
     /// <inheritdoc />
-    public decimal GetAccountBalance()
+    public Task<decimal> GetAccountBalanceAsync()
     {
-        return _cashBalance;
+        return Task.FromResult(_cashBalance);
     }
 
     /// <inheritdoc />
-    public IReadOnlyDictionary<string, decimal> GetOpenPositions()
+    public Task<IReadOnlyDictionary<string, decimal>> GetOpenPositionsAsync()
     {
-        return new Dictionary<string, decimal>(_positions);
+        IReadOnlyDictionary<string, decimal> result = new Dictionary<string, decimal>(_positions);
+        return Task.FromResult(result);
     }
 
     /// <summary>
     /// Synchronizes positions and account balance from Alpaca.
     /// </summary>
-    private async Task SyncAccountState()
+    private async Task SyncAccountStateAsync()
     {
         try
         {
@@ -163,7 +176,7 @@ public class AlpacaBroker : IBroker
 
             // Fetch positions
             var positions = await _client.ListPositionsAsync();
-            
+
             _positions.Clear();
             foreach (var position in positions)
             {

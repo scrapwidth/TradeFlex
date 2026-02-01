@@ -16,7 +16,7 @@ public static class AlpacaIntegrationTest
         {
             return await RunAlpacaTest();
         }
-        
+
         // Not an integration test run, return success
         return 0;
     }
@@ -31,7 +31,7 @@ public static class AlpacaIntegrationTest
             // Step 1: Load configuration
             Console.WriteLine("Step 1: Loading Alpaca configuration...");
             AlpacaConfiguration config;
-            
+
             try
             {
                 config = AlpacaConfiguration.FromEnvironment();
@@ -50,10 +50,10 @@ public static class AlpacaIntegrationTest
             // Step 2: Create broker instance
             Console.WriteLine("Step 2: Creating AlpacaBroker instance...");
             AlpacaBroker broker;
-            
+
             try
             {
-                broker = new AlpacaBroker(config);
+                broker = await AlpacaBroker.CreateAsync(config);
                 Console.WriteLine("  ✓ Broker created successfully");
             }
             catch (Exception ex)
@@ -68,9 +68,9 @@ public static class AlpacaIntegrationTest
             Console.WriteLine("Step 3: Fetching account information...");
             try
             {
-                var balance = broker.GetAccountBalance();
+                var balance = await broker.GetAccountBalanceAsync();
                 Console.WriteLine($"  ✓ Account balance: {balance:C}");
-                
+
                 if (balance <= 0)
                 {
                     Console.WriteLine("  ⚠️  Warning: Account balance is zero or negative");
@@ -88,14 +88,14 @@ public static class AlpacaIntegrationTest
             Console.WriteLine("Step 4: Fetching current positions...");
             try
             {
-                var positions = broker.GetOpenPositions();
+                var positions = await broker.GetOpenPositionsAsync();
                 Console.WriteLine($"  ✓ Found {positions.Count} open position(s)");
-                
+
                 foreach (var position in positions)
                 {
                     Console.WriteLine($"    - {position.Key}: {position.Value:F8}");
                 }
-                
+
                 if (positions.Count == 0)
                 {
                     Console.WriteLine("    (No positions - this is normal for a new account)");
@@ -113,7 +113,7 @@ public static class AlpacaIntegrationTest
             Console.WriteLine("Step 5: Testing position query for BTCUSD...");
             try
             {
-                var btcPosition = broker.GetPosition("BTCUSD");
+                var btcPosition = await broker.GetPositionAsync("BTCUSD");
                 Console.WriteLine($"  ✓ BTCUSD position: {btcPosition:F8}");
             }
             catch (Exception ex)

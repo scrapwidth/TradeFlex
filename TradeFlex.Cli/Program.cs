@@ -1,31 +1,23 @@
 using System.CommandLine;
-using System.Reflection;
 using TradeFlex.Abstractions;
 using TradeFlex.Backtest;
 using TradeFlex.Core;
 using TradeFlex.Cli;
 using TradeFlex.BrokerAdapters;
+using TradeFlex.SampleStrategies;
 
 var backtest = new Command("backtest", "Run a historical back-test")
 {
-    new Option<FileInfo>("--algo", "Path to algorithm DLL") { IsRequired = true },
+    new Option<string>("--algo", "Algorithm name: SMA, RSI") { IsRequired = true },
     new Option<string>("--data", "Path to Parquet file") { IsRequired = true },
     new Option<string>("--symbol", "Symbol to trade") { IsRequired = true },
     new Option<DateTime?>("--from", "Start timestamp (UTC)"),
     new Option<DateTime?>("--to", "End timestamp (UTC)")
 };
 
-backtest.SetHandler(async (FileInfo algo, string data, string symbol, DateTime? from, DateTime? to) =>
+backtest.SetHandler(async (string algo, string data, string symbol, DateTime? from, DateTime? to) =>
 {
-    var asm = Assembly.LoadFrom(algo.FullName);
-    var algoType = asm.GetTypes().FirstOrDefault(t => typeof(ITradingAlgorithm).IsAssignableFrom(t) && !t.IsAbstract && !t.IsInterface);
-    if (algoType == null)
-    {
-        Console.Error.WriteLine("No algorithm found in assembly");
-        return;
-    }
-
-    var algorithm = AlgorithmRunner.CreateAlgorithm(algoType);
+    var algorithm = CreateAlgorithm(algo);
     var start = from ?? DateTime.UtcNow;
     var clock = new SimulationClock(start, TimeSpan.FromMinutes(1));
     var engine = new BacktestEngine(clock);
@@ -44,7 +36,7 @@ backtest.SetHandler(async (FileInfo algo, string data, string symbol, DateTime? 
     Console.WriteLine($"Profit Factor:     {(result.ProfitFactor.HasValue ? result.ProfitFactor.Value.ToString("N2") : "N/A")}");
     Console.WriteLine("========================");
 },
-    backtest.Options[0] as Option<FileInfo>,
+    backtest.Options[0] as Option<string>,
     backtest.Options[1] as Option<string>,
     backtest.Options[2] as Option<string>,
     backtest.Options[3] as Option<DateTime?>,
@@ -52,33 +44,45 @@ backtest.SetHandler(async (FileInfo algo, string data, string symbol, DateTime? 
 
 var shadow = new Command("shadow", "Run a shadow trading session")
 {
-    new Option<FileInfo>("--algo", "Path to algorithm DLL") { IsRequired = true },
+    new Option<string>("--algo", "Algorithm name: SMA, RSI") { IsRequired = true },
     new Option<string>("--symbol", "Symbol to trade") { IsRequired = true },
     new Option<string>("--broker", () => "paper", "Broker: 'paper' or 'alpaca'")
 };
 
-shadow.SetHandler(async (FileInfo algo, string symbol, string brokerType) =>
+shadow.SetHandler(async (string algo, string symbol, string brokerType) =>
 {
+    var algorithm = CreateAlgorithm(algo);
+
     // Create broker based on selection
     IBroker broker = brokerType.ToLower() switch
     {
-        "alpaca" => CreateAlpacaBroker(),
+        "alpaca" => await CreateAlpacaBrokerAsync(),
         "paper" => new PaperBroker(100000m),
         _ => throw new ArgumentException($"Unknown broker type: {brokerType}. Use 'paper' or 'alpaca'.")
     };
 
-    await ShadowRunner.RunAsync(algo, symbol, broker);
+    await ShadowRunner.RunAsync(algorithm, symbol, broker);
 },
-    shadow.Options[0] as Option<FileInfo>,
+    shadow.Options[0] as Option<string>,
     shadow.Options[1] as Option<string>,
     shadow.Options[2] as Option<string>);
 
-static IBroker CreateAlpacaBroker()
+static ITradingAlgorithm CreateAlgorithm(string name)
+{
+    return name.ToUpper() switch
+    {
+        "SMA" => new SimpleSmaCrossoverAlgorithm(),
+        "RSI" => new RsiMeanReversionAlgorithm(),
+        _ => throw new ArgumentException($"Unknown algorithm: {name}. Available: SMA, RSI")
+    };
+}
+
+static async Task<IBroker> CreateAlpacaBrokerAsync()
 {
     try
     {
         var config = AlpacaConfiguration.FromEnvironment();
-        return new AlpacaBroker(config);
+        return await AlpacaBroker.CreateAsync(config);
     }
     catch (Exception ex)
     {

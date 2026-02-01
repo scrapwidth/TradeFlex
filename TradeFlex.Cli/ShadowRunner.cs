@@ -1,6 +1,4 @@
 using System;
-using System.IO;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using TradeFlex.Abstractions;
@@ -11,25 +9,14 @@ namespace TradeFlex.Cli;
 
 public static class ShadowRunner
 {
-    public static async Task RunAsync(FileInfo algoFile, string symbol, IBroker broker)
+    public static async Task RunAsync(ITradingAlgorithm algorithm, string symbol, IBroker broker)
     {
         Console.WriteLine($"Starting Shadow Trading for {symbol}...");
-
-        // Load Algorithm
-        var asm = Assembly.LoadFrom(algoFile.FullName);
-        var algoType = asm.GetTypes().FirstOrDefault(t => typeof(ITradingAlgorithm).IsAssignableFrom(t) && !t.IsAbstract && !t.IsInterface);
-        if (algoType == null)
-        {
-            Console.Error.WriteLine("No algorithm found in assembly");
-            return;
-        }
-
-        var algorithm = (ITradingAlgorithm)Activator.CreateInstance(algoType)!;
 
         // Use injected broker
         var context = new AlgorithmContext(broker);
 
-        algorithm.Initialize(context);
+        await algorithm.InitializeAsync(context);
 
         var cancellationTokenSource = new CancellationTokenSource();
         Console.CancelKeyPress += (s, e) =>
@@ -57,7 +44,7 @@ public static class ShadowRunner
                         paperBroker.UpdatePrice(bar.Symbol, bar.Close);
                     }
 
-                    algorithm.OnBar(bar);
+                    await algorithm.OnBarAsync(bar);
                 }
             }
         }
@@ -66,14 +53,14 @@ public static class ShadowRunner
             // Graceful shutdown
         }
 
-        algorithm.OnExit();
+        await algorithm.OnExitAsync();
         Console.WriteLine("Shadow Trading Stopped.");
         Console.WriteLine("Final Positions:");
-        foreach (var kvp in broker.GetOpenPositions())
+        foreach (var kvp in await broker.GetOpenPositionsAsync())
         {
             Console.WriteLine($"  {kvp.Key}: {kvp.Value}");
         }
-        Console.WriteLine($"Final Cash: {broker.GetAccountBalance():C}");
+        Console.WriteLine($"Final Cash: {await broker.GetAccountBalanceAsync():C}");
     }
 
     private class AlgorithmContext : IAlgorithmContext

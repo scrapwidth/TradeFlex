@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using TradeFlex.Abstractions;
 
 namespace TradeFlex.Tests;
@@ -6,11 +7,11 @@ public class DummyAlgorithmTests
 {
     private sealed class DummyAlgorithm : ITradingAlgorithm
     {
-        public void Initialize(IAlgorithmContext context) { }
+        public Task InitializeAsync(IAlgorithmContext context) => Task.CompletedTask;
 
-        public void OnBar(Bar bar) { }
+        public Task OnBarAsync(Bar bar) => Task.CompletedTask;
 
-        public void OnExit() { }
+        public Task OnExitAsync() => Task.CompletedTask;
 
         public bool OnRiskCheck(Order order) => true;
     }

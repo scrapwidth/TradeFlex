@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using TradeFlex.Abstractions;
 using TradeFlex.Core;
 
@@ -36,16 +37,17 @@ public sealed class RsiMeanReversionAlgorithm : BaseAlgorithm
     }
 
     /// <inheritdoc />
-    public override void Initialize(IAlgorithmContext context)
+    public override Task InitializeAsync(IAlgorithmContext context)
     {
-        base.Initialize(context);
+        base.InitializeAsync(context);
         _priceChanges.Clear();
         _previousClose = 0;
         _hasPreviousClose = false;
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc />
-    public override void OnBar(Bar bar)
+    public override async Task OnBarAsync(Bar bar)
     {
         if (!_hasPreviousClose)
         {
@@ -76,22 +78,22 @@ public sealed class RsiMeanReversionAlgorithm : BaseAlgorithm
         if (rsi < _oversoldThreshold)
         {
             // Buy signal: Use 10% of available cash
-            var cash = Broker.GetAccountBalance();
+            var cash = await Broker.GetAccountBalanceAsync();
             var dollarAmount = cash * 0.10m;
             var quantity = dollarAmount / bar.Close;
 
             if (quantity > 0)
             {
-                Buy(bar.Symbol, quantity);
+                await BuyAsync(bar.Symbol, quantity);
             }
         }
         else if (rsi > _overboughtThreshold)
         {
             // Sell signal: Exit entire position
-            var position = Broker.GetPosition(bar.Symbol);
+            var position = await Broker.GetPositionAsync(bar.Symbol);
             if (position > 0)
             {
-                Sell(bar.Symbol, position);
+                await SellAsync(bar.Symbol, position);
             }
         }
     }

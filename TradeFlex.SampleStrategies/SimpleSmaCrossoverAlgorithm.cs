@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using TradeFlex.Abstractions;
 using TradeFlex.Core;
 
@@ -33,17 +34,18 @@ public sealed class SimpleSmaCrossoverAlgorithm : BaseAlgorithm
     }
 
     /// <inheritdoc />
-    public override void Initialize(IAlgorithmContext context)
+    public override Task InitializeAsync(IAlgorithmContext context)
     {
-        base.Initialize(context);
+        base.InitializeAsync(context);
         _fastWindow.Clear();
         _slowWindow.Clear();
         _previousFast = 0;
         _previousSlow = 0;
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc />
-    public override void OnBar(Bar bar)
+    public override async Task OnBarAsync(Bar bar)
     {
         UpdateWindow(_fastWindow, bar.Close, _fastPeriod);
         UpdateWindow(_slowWindow, bar.Close, _slowPeriod);
@@ -54,22 +56,22 @@ public sealed class SimpleSmaCrossoverAlgorithm : BaseAlgorithm
         if (_previousFast <= _previousSlow && fast > slow)
         {
             // Buy signal: Use 10% of available cash
-            var cash = Broker.GetAccountBalance();
+            var cash = await Broker.GetAccountBalanceAsync();
             var dollarAmount = cash * 0.10m;
             var quantity = dollarAmount / bar.Close;
-            
+
             if (quantity > 0)
             {
-                Buy(bar.Symbol, quantity);
+                await BuyAsync(bar.Symbol, quantity);
             }
         }
         else if (_previousFast >= _previousSlow && fast < slow)
         {
             // Sell signal: Exit entire position
-            var position = Broker.GetPosition(bar.Symbol);
+            var position = await Broker.GetPositionAsync(bar.Symbol);
             if (position > 0)
             {
-                Sell(bar.Symbol, position);
+                await SellAsync(bar.Symbol, position);
             }
         }
 
