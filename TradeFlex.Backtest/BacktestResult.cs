@@ -53,13 +53,20 @@ public sealed class BacktestResult
     public decimal? ProfitFactor { get; }
 
     /// <summary>
+    /// Gets the buy-and-hold return as a percentage (benchmark comparison).
+    /// </summary>
+    public decimal BuyAndHoldReturnPercent { get; }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="BacktestResult"/> class.
     /// </summary>
     /// <param name="trades">The list of executed trades.</param>
     /// <param name="initialCash">The initial cash balance.</param>
     /// <param name="finalCash">The final cash balance.</param>
     /// <param name="equityCurve">The equity values at each point for drawdown calculation.</param>
-    public BacktestResult(IReadOnlyList<Trade> trades, decimal initialCash, decimal finalCash, IReadOnlyList<decimal> equityCurve)
+    /// <param name="firstPrice">The price at the start of the backtest period.</param>
+    /// <param name="lastPrice">The price at the end of the backtest period.</param>
+    public BacktestResult(IReadOnlyList<Trade> trades, decimal initialCash, decimal finalCash, IReadOnlyList<decimal> equityCurve, decimal firstPrice = 0, decimal lastPrice = 0)
     {
         Trades = trades;
         InitialCash = initialCash;
@@ -79,6 +86,11 @@ public sealed class BacktestResult
         var (winRate, profitFactor) = CalculateTradeMetrics(trades);
         WinRatePercent = winRate;
         ProfitFactor = profitFactor;
+
+        // Calculate Buy-and-Hold return (benchmark)
+        BuyAndHoldReturnPercent = firstPrice > 0
+            ? (lastPrice - firstPrice) / firstPrice * 100m
+            : 0m;
     }
 
     private static decimal CalculateMaxDrawdown(IReadOnlyList<decimal> equityCurve)

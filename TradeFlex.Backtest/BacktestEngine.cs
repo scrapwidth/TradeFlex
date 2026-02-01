@@ -35,6 +35,8 @@ public sealed class BacktestEngine
         var broker = new PaperBroker(initialCash);
         var context = new AlgorithmContext(broker);
         var equityCurve = new List<decimal> { initialCash };
+        decimal firstPrice = 0;
+        decimal lastPrice = 0;
 
         await algorithm.InitializeAsync(context);
 
@@ -53,6 +55,13 @@ public sealed class BacktestEngine
             broker.UpdatePrice(symbol, bar.Close);
             await algorithm.OnBarAsync(bar);
 
+            // Track first and last price for buy-and-hold benchmark
+            if (firstPrice == 0)
+            {
+                firstPrice = bar.Close;
+            }
+            lastPrice = bar.Close;
+
             // Track equity curve for drawdown calculation
             // Equity = cash + position value at current market price
             var position = await broker.GetPositionAsync(symbol);
@@ -64,7 +73,7 @@ public sealed class BacktestEngine
         await algorithm.OnExitAsync();
 
         var finalCash = await broker.GetAccountBalanceAsync();
-        return new BacktestResult(broker.Trades.ToList(), initialCash, finalCash, equityCurve);
+        return new BacktestResult(broker.Trades.ToList(), initialCash, finalCash, equityCurve, firstPrice, lastPrice);
     }
 
     private class AlgorithmContext : IAlgorithmContext
