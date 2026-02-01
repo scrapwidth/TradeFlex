@@ -1,2 +1,10 @@
 **/bin/
 **/obj/
+
+# Environment files (contain secrets)
+.env
+.env.*
+
+# Coverage reports
+coverage/
+*.cobertura.xml
