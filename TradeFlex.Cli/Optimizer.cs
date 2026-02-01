@@ -196,8 +196,9 @@ public static class Optimizer
     private static async Task<BacktestResult> RunBacktestAsync(ITradingAlgorithm algorithm, string dataFile, string symbol)
     {
         var clock = new SimulationClock(DateTime.UtcNow, TimeSpan.FromMinutes(1));
+        // No logger factory = silent operation (NullLoggerFactory is used by default)
         var engine = new BacktestEngine(clock);
-        return await engine.RunAsync(algorithm, dataFile, symbol, verbose: false);
+        return await engine.RunAsync(algorithm, dataFile, symbol);
     }
 
     public static void PrintResults(List<OptimizationResult> results, decimal buyAndHoldReturn)

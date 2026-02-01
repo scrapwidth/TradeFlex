@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using TradeFlex.Abstractions;
 
 namespace TradeFlex.Core;
@@ -15,7 +17,7 @@ public class PaperBroker : IBroker
     private decimal _cash;
     private readonly decimal _feePercentage;
     private readonly List<Trade> _trades = new();
-    private readonly bool _verbose;
+    private readonly ILogger<PaperBroker> _logger;
 
     /// <summary>
     /// Gets the list of executed trades.
@@ -27,12 +29,12 @@ public class PaperBroker : IBroker
     /// </summary>
     /// <param name="initialCash">The starting cash balance.</param>
     /// <param name="feePercentage">The fee percentage (e.g., 0.005 for 0.5%).</param>
-    /// <param name="verbose">Whether to print trade logs to console.</param>
-    public PaperBroker(decimal initialCash, decimal feePercentage = 0.005m, bool verbose = true)
+    /// <param name="logger">Optional logger instance. If null, logging is disabled.</param>
+    public PaperBroker(decimal initialCash, decimal feePercentage = 0.005m, ILogger<PaperBroker>? logger = null)
     {
         _cash = initialCash;
         _feePercentage = feePercentage;
-        _verbose = verbose;
+        _logger = logger ?? NullLogger<PaperBroker>.Instance;
     }
 
     /// <summary>
@@ -59,7 +61,7 @@ public class PaperBroker : IBroker
             }
             else
             {
-                if (_verbose) Console.WriteLine($"[PaperBroker] Warning: No market price for {order.Symbol}. Cannot fill market order.");
+                _logger.LogWarning("No market price for {Symbol}. Cannot fill market order", order.Symbol);
                 return Task.CompletedTask;
             }
         }
@@ -71,7 +73,7 @@ public class PaperBroker : IBroker
         // Basic validation for buys
         if (order.Quantity > 0 && _cash < totalCost)
         {
-            if (_verbose) Console.WriteLine($"[PaperBroker] Insufficient funds. Need {totalCost:C}, have {_cash:C}");
+            _logger.LogWarning("Insufficient funds. Need {Required:C}, have {Available:C}", totalCost, _cash);
             return Task.CompletedTask;
         }
 
@@ -99,7 +101,8 @@ public class PaperBroker : IBroker
         var trade = new Trade(order.Symbol, Math.Abs(order.Quantity), fillPrice, side);
         _trades.Add(trade);
 
-        if (_verbose) Console.WriteLine($"[PaperBroker] Filled {side} {Math.Abs(order.Quantity):F8} {order.Symbol} @ {fillPrice:F2}. Fee: {fee:F2}. Cash: {_cash:F2}");
+        _logger.LogInformation("Filled {Side} {Quantity:F8} {Symbol} @ {Price:F2}. Fee: {Fee:F2}. Cash: {Cash:F2}",
+            side, Math.Abs(order.Quantity), order.Symbol, fillPrice, fee, _cash);
 
         return Task.CompletedTask;
     }

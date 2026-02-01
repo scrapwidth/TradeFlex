@@ -1,5 +1,6 @@
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using Microsoft.Extensions.Logging;
 using TradeFlex.Abstractions;
 using TradeFlex.Backtest;
 using TradeFlex.Core;
@@ -24,6 +25,7 @@ var dataOption = new Option<string>("--data", "Path to Parquet file") { IsRequir
 var symbolOption = new Option<string>("--symbol", "Symbol to trade") { IsRequired = true };
 var fromOption = new Option<DateTime?>("--from", "Start timestamp (UTC)");
 var toOption = new Option<DateTime?>("--to", "End timestamp (UTC)");
+var verboseOption = new Option<bool>("--verbose", () => true, "Enable verbose trade logging");
 
 var backtest = new Command("backtest", "Run a historical back-test")
 {
@@ -32,6 +34,7 @@ var backtest = new Command("backtest", "Run a historical back-test")
     symbolOption,
     fromOption,
     toOption,
+    verboseOption,
     fastPeriodOption,
     slowPeriodOption,
     rsiPeriodOption,
@@ -49,6 +52,7 @@ backtest.SetHandler(async (InvocationContext ctx) =>
     var symbol = ctx.ParseResult.GetValueForOption(symbolOption)!;
     var from = ctx.ParseResult.GetValueForOption(fromOption);
     var to = ctx.ParseResult.GetValueForOption(toOption);
+    var verbose = ctx.ParseResult.GetValueForOption(verboseOption);
     var fastPeriod = ctx.ParseResult.GetValueForOption(fastPeriodOption);
     var slowPeriod = ctx.ParseResult.GetValueForOption(slowPeriodOption);
     var rsiPeriod = ctx.ParseResult.GetValueForOption(rsiPeriodOption);
@@ -61,7 +65,19 @@ backtest.SetHandler(async (InvocationContext ctx) =>
     var algorithm = CreateAlgorithm(algo, fastPeriod, slowPeriod, rsiPeriod, oversold, overbought, basePos, takeProfit, stopLoss);
     var start = from ?? DateTime.UtcNow;
     var clock = new SimulationClock(start, TimeSpan.FromMinutes(1));
-    var engine = new BacktestEngine(clock);
+
+    // Configure logging based on verbose flag
+    ILoggerFactory? loggerFactory = null;
+    if (verbose)
+    {
+        loggerFactory = LoggerFactory.Create(builder =>
+        {
+            builder.AddConsole();
+            builder.SetMinimumLevel(LogLevel.Information);
+        });
+    }
+
+    var engine = new BacktestEngine(clock, loggerFactory);
 
     var result = await engine.RunAsync(algorithm, data, symbol, from, to);
 

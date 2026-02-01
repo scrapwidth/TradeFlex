@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using TradeFlex.Abstractions;
 using TradeFlex.Core;
 
@@ -9,14 +11,17 @@ namespace TradeFlex.Backtest;
 public sealed class BacktestEngine
 {
     private readonly SimulationClock _clock;
+    private readonly ILoggerFactory _loggerFactory;
 
     /// <summary>
     /// Initializes the engine with the specified simulation clock.
     /// </summary>
     /// <param name="clock">Clock used to advance simulated time.</param>
-    public BacktestEngine(SimulationClock clock)
+    /// <param name="loggerFactory">Optional logger factory for creating loggers.</param>
+    public BacktestEngine(SimulationClock clock, ILoggerFactory? loggerFactory = null)
     {
         _clock = clock;
+        _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
     }
 
     /// <summary>
@@ -29,11 +34,12 @@ public sealed class BacktestEngine
     /// <param name="to">Optional end time filter.</param>
     /// <param name="verbose">Whether to print trade logs.</param>
     /// <returns>Backtest results including trades and performance metrics.</returns>
-    public async Task<BacktestResult> RunAsync(ITradingAlgorithm algorithm, string dataFile, string symbol, DateTime? from = null, DateTime? to = null, bool verbose = true)
+    public async Task<BacktestResult> RunAsync(ITradingAlgorithm algorithm, string dataFile, string symbol, DateTime? from = null, DateTime? to = null)
     {
         // Setup Paper Broker
         const decimal initialCash = 100000m; // Default $100k starting cash
-        var broker = new PaperBroker(initialCash, verbose: verbose);
+        var brokerLogger = _loggerFactory.CreateLogger<PaperBroker>();
+        var broker = new PaperBroker(initialCash, logger: brokerLogger);
         var context = new AlgorithmContext(broker);
         var equityCurve = new List<decimal> { initialCash };
         decimal firstPrice = 0;
