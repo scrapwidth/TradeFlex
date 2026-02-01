@@ -30,7 +30,7 @@ dotnet run --project TradeFlex.Cli -- shadow --algo TradeFlex.SampleStrategies/b
 
 **Core Abstractions** (`TradeFlex.Abstractions`):
 - `ITradingAlgorithm`: Main interface for strategies with `Initialize`, `OnBar`, `OnExit`, `OnRiskCheck` hooks
-- `IBroker`: Order execution interface (`SubmitOrder`, `GetPosition`, `GetAccountBalance`)
+- `IBroker`: Async order execution interface (`SubmitOrderAsync`, `GetPositionAsync`, `GetAccountBalanceAsync`)
 - `IAlgorithmContext`: Injected into algorithms at initialization, provides broker access
 - `Bar`, `Order`, `Trade`: Core data records
 
@@ -44,7 +44,7 @@ dotnet run --project TradeFlex.Cli -- shadow --algo TradeFlex.SampleStrategies/b
 2. `AlgorithmRunner.CreateAlgorithm()` instantiates the algorithm type
 3. Algorithm receives `IAlgorithmContext` in `Initialize()` with broker reference
 4. `OnBar()` called for each price bar (backtest) or completed minute bar (shadow mode)
-5. Orders submitted via `Buy()`/`Sell()` → `OnRiskCheck()` → `Broker.SubmitOrder()`
+5. Orders submitted via `BuyAsync()`/`SellAsync()` → `OnRiskCheck()` → `Broker.SubmitOrderAsync()`
 
 **Broker Adapters** (`TradeFlex.BrokerAdapters`):
 - `AlpacaBroker`: Real paper/live trading via Alpaca API
@@ -62,15 +62,15 @@ Extend `BaseAlgorithm` and implement `OnBar`:
 ```csharp
 public class MyStrategy : BaseAlgorithm
 {
-    public override void OnBar(Bar bar)
+    public override async Task OnBarAsync(Bar bar)
     {
-        var cash = Broker.GetAccountBalance();
-        var position = Broker.GetPosition(bar.Symbol);
+        var cash = await Broker.GetAccountBalanceAsync();
+        var position = await Broker.GetPositionAsync(bar.Symbol);
 
         if (/* buy condition */)
-            Buy(bar.Symbol, quantity);
+            await BuyAsync(bar.Symbol, quantity);
         if (/* sell condition */)
-            Sell(bar.Symbol, position);
+            await SellAsync(bar.Symbol, position);
     }
 }
 ```
@@ -83,7 +83,7 @@ public class MyStrategy : BaseAlgorithm
 
 ## Key Design Patterns
 
-**IBroker is synchronous**: The `IBroker.SubmitOrder()` returns `void`, which forces broker adapters to block on async external APIs. This is a known limitation - real trading will require refactoring to `Task SubmitOrderAsync()`.
+**IBroker is fully async**: All broker methods return `Task` or `Task<T>`, enabling non-blocking calls to external APIs like Alpaca.
 
 **Algorithm loading via reflection**: CLI loads strategy DLLs at runtime using `Assembly.LoadFrom()` and finds types implementing `ITradingAlgorithm`. Strategies must be compiled before running.
 
