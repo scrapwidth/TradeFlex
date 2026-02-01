@@ -15,6 +15,7 @@ public class PaperBroker : IBroker
     private decimal _cash;
     private readonly decimal _feePercentage;
     private readonly List<Trade> _trades = new();
+    private readonly bool _verbose;
 
     /// <summary>
     /// Gets the list of executed trades.
@@ -26,10 +27,12 @@ public class PaperBroker : IBroker
     /// </summary>
     /// <param name="initialCash">The starting cash balance.</param>
     /// <param name="feePercentage">The fee percentage (e.g., 0.005 for 0.5%).</param>
-    public PaperBroker(decimal initialCash, decimal feePercentage = 0.005m)
+    /// <param name="verbose">Whether to print trade logs to console.</param>
+    public PaperBroker(decimal initialCash, decimal feePercentage = 0.005m, bool verbose = true)
     {
         _cash = initialCash;
         _feePercentage = feePercentage;
+        _verbose = verbose;
     }
 
     /// <summary>
@@ -56,7 +59,7 @@ public class PaperBroker : IBroker
             }
             else
             {
-                Console.WriteLine($"[PaperBroker] Warning: No market price for {order.Symbol}. Cannot fill market order.");
+                if (_verbose) Console.WriteLine($"[PaperBroker] Warning: No market price for {order.Symbol}. Cannot fill market order.");
                 return Task.CompletedTask;
             }
         }
@@ -68,7 +71,7 @@ public class PaperBroker : IBroker
         // Basic validation for buys
         if (order.Quantity > 0 && _cash < totalCost)
         {
-            Console.WriteLine($"[PaperBroker] Insufficient funds. Need {totalCost:C}, have {_cash:C}");
+            if (_verbose) Console.WriteLine($"[PaperBroker] Insufficient funds. Need {totalCost:C}, have {_cash:C}");
             return Task.CompletedTask;
         }
 
@@ -96,7 +99,7 @@ public class PaperBroker : IBroker
         var trade = new Trade(order.Symbol, Math.Abs(order.Quantity), fillPrice, side);
         _trades.Add(trade);
 
-        Console.WriteLine($"[PaperBroker] Filled {side} {Math.Abs(order.Quantity):F8} {order.Symbol} @ {fillPrice:F2}. Fee: {fee:F2}. Cash: {_cash:F2}");
+        if (_verbose) Console.WriteLine($"[PaperBroker] Filled {side} {Math.Abs(order.Quantity):F8} {order.Symbol} @ {fillPrice:F2}. Fee: {fee:F2}. Cash: {_cash:F2}");
 
         return Task.CompletedTask;
     }

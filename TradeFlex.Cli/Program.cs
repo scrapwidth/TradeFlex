@@ -194,9 +194,54 @@ download.SetHandler(async (string symbol, DateTime from, DateTime to, string gra
     granularityOption,
     outputOption);
 
+// Optimize command
+var optimizeAlgoOption = new Option<string>("--algo", () => "ALL", "Algorithm to optimize: SMA, RSI, MARTINGALE, or ALL");
+var optimizeDataOption = new Option<string>("--data", "Path to Parquet file") { IsRequired = true };
+var optimizeSymbolOption = new Option<string>("--symbol", "Symbol to trade") { IsRequired = true };
+var topNOption = new Option<int>("--top", () => 10, "Number of top results to show");
+
+var optimize = new Command("optimize", "Find optimal algorithm parameters for a dataset (WARNING: overfitting!)")
+{
+    optimizeAlgoOption,
+    optimizeDataOption,
+    optimizeSymbolOption,
+    topNOption
+};
+
+optimize.SetHandler(async (string algo, string data, string symbol, int topN) =>
+{
+    Console.WriteLine($"Optimizing {algo} parameters on {symbol}...");
+    Console.WriteLine("This may take a while...");
+    Console.WriteLine();
+
+    var results = await Optimizer.OptimizeAsync(
+        data,
+        symbol,
+        algo,
+        topN,
+        progress => Console.Write($"\r{progress.PadRight(60)}")
+    );
+
+    Console.WriteLine();
+
+    if (results.Count > 0)
+    {
+        Optimizer.PrintResults(results, results[0].BuyAndHoldReturn);
+    }
+    else
+    {
+        Console.WriteLine("No results found.");
+    }
+},
+    optimizeAlgoOption,
+    optimizeDataOption,
+    optimizeSymbolOption,
+    topNOption);
+
 var root = new RootCommand("tradeflex command line interface");
 root.Add(backtest);
 root.Add(shadow);
 root.Add(download);
+root.Add(optimize);
 
 return await root.InvokeAsync(args);

@@ -27,12 +27,13 @@ public sealed class BacktestEngine
     /// <param name="symbol">The symbol to trade.</param>
     /// <param name="from">Optional start time filter.</param>
     /// <param name="to">Optional end time filter.</param>
+    /// <param name="verbose">Whether to print trade logs.</param>
     /// <returns>Backtest results including trades and performance metrics.</returns>
-    public async Task<BacktestResult> RunAsync(ITradingAlgorithm algorithm, string dataFile, string symbol, DateTime? from = null, DateTime? to = null)
+    public async Task<BacktestResult> RunAsync(ITradingAlgorithm algorithm, string dataFile, string symbol, DateTime? from = null, DateTime? to = null, bool verbose = true)
     {
         // Setup Paper Broker
         const decimal initialCash = 100000m; // Default $100k starting cash
-        var broker = new PaperBroker(initialCash);
+        var broker = new PaperBroker(initialCash, verbose: verbose);
         var context = new AlgorithmContext(broker);
         var equityCurve = new List<decimal> { initialCash };
         decimal firstPrice = 0;
