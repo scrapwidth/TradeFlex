@@ -18,12 +18,17 @@ public sealed class BacktestResult
     public decimal InitialCash { get; }
 
     /// <summary>
-    /// Gets the final cash balance at the end of the backtest.
+    /// Gets the final cash balance at the end of the backtest (excluding open positions).
     /// </summary>
     public decimal FinalCash { get; }
 
     /// <summary>
-    /// Gets the total return as a percentage: (FinalCash - InitialCash) / InitialCash * 100.
+    /// Gets the final equity (cash + position value) at the end of the backtest.
+    /// </summary>
+    public decimal FinalEquity { get; }
+
+    /// <summary>
+    /// Gets the total return as a percentage: (FinalEquity - InitialCash) / InitialCash * 100.
     /// </summary>
     public decimal TotalReturnPercent { get; }
 
@@ -59,11 +64,12 @@ public sealed class BacktestResult
         Trades = trades;
         InitialCash = initialCash;
         FinalCash = finalCash;
+        FinalEquity = equityCurve.Count > 0 ? equityCurve[^1] : finalCash;
         TotalTrades = trades.Count;
 
-        // Calculate Total Return %
+        // Calculate Total Return % based on final equity (includes open positions)
         TotalReturnPercent = initialCash != 0
-            ? (finalCash - initialCash) / initialCash * 100m
+            ? (FinalEquity - initialCash) / initialCash * 100m
             : 0m;
 
         // Calculate Max Drawdown %

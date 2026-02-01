@@ -28,6 +28,7 @@ backtest.SetHandler(async (string algo, string data, string symbol, DateTime? fr
     Console.WriteLine();
     Console.WriteLine("=== Backtest Results ===");
     Console.WriteLine($"Initial Cash:      ${result.InitialCash:N2}");
+    Console.WriteLine($"Final Equity:      ${result.FinalEquity:N2}");
     Console.WriteLine($"Final Cash:        ${result.FinalCash:N2}");
     Console.WriteLine($"Total Return:      {result.TotalReturnPercent:N2}%");
     Console.WriteLine($"Max Drawdown:      {result.MaxDrawdownPercent:N2}%");
