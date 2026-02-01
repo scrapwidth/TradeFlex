@@ -6,6 +6,8 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <OutputType>Exe</OutputType>
+    <!-- Exclude BrokerAdapters from coverage (external API integration) -->
+    <Exclude>[TradeFlex.BrokerAdapters]*</Exclude>
   </PropertyGroup>
 
   <ItemGroup>

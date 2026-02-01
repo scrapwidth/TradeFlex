@@ -30,8 +30,19 @@ backtest.SetHandler(async (FileInfo algo, string data, string symbol, DateTime? 
     var clock = new SimulationClock(start, TimeSpan.FromMinutes(1));
     var engine = new BacktestEngine(clock);
 
-    var trades = await engine.RunAsync(algorithm, data, symbol, from, to);
-    Console.WriteLine($"Processed {trades.Count} trades");
+    var result = await engine.RunAsync(algorithm, data, symbol, from, to);
+
+    // Print performance metrics
+    Console.WriteLine();
+    Console.WriteLine("=== Backtest Results ===");
+    Console.WriteLine($"Initial Cash:      ${result.InitialCash:N2}");
+    Console.WriteLine($"Final Cash:        ${result.FinalCash:N2}");
+    Console.WriteLine($"Total Return:      {result.TotalReturnPercent:N2}%");
+    Console.WriteLine($"Max Drawdown:      {result.MaxDrawdownPercent:N2}%");
+    Console.WriteLine($"Total Trades:      {result.TotalTrades}");
+    Console.WriteLine($"Win Rate:          {result.WinRatePercent:N2}%");
+    Console.WriteLine($"Profit Factor:     {(result.ProfitFactor.HasValue ? result.ProfitFactor.Value.ToString("N2") : "N/A")}");
+    Console.WriteLine("========================");
 },
     backtest.Options[0] as Option<FileInfo>,
     backtest.Options[1] as Option<string>,

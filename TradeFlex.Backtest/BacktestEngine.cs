@@ -27,12 +27,14 @@ public sealed class BacktestEngine
     /// <param name="symbol">The symbol to trade.</param>
     /// <param name="from">Optional start time filter.</param>
     /// <param name="to">Optional end time filter.</param>
-    /// <returns>Trades produced by the algorithm.</returns>
-    public async Task<List<Trade>> RunAsync(ITradingAlgorithm algorithm, string dataFile, string symbol, DateTime? from = null, DateTime? to = null)
+    /// <returns>Backtest results including trades and performance metrics.</returns>
+    public async Task<BacktestResult> RunAsync(ITradingAlgorithm algorithm, string dataFile, string symbol, DateTime? from = null, DateTime? to = null)
     {
         // Setup Paper Broker
-        var broker = new PaperBroker(100000m); // Default $100k starting cash
+        const decimal initialCash = 100000m; // Default $100k starting cash
+        var broker = new PaperBroker(initialCash);
         var context = new AlgorithmContext(broker);
+        var equityCurve = new List<decimal> { initialCash };
 
         algorithm.Initialize(context);
 
@@ -50,10 +52,19 @@ public sealed class BacktestEngine
             _clock.Advance();
             broker.UpdatePrice(symbol, bar.Close);
             algorithm.OnBar(bar);
+
+            // Track equity curve for drawdown calculation
+            // Equity = cash + position value at current market price
+            var position = broker.GetPosition(symbol);
+            var positionValue = position * bar.Close;
+            var equity = broker.GetAccountBalance() + positionValue;
+            equityCurve.Add(equity);
         }
 
         algorithm.OnExit();
-        return new List<Trade>(broker.Trades);
+
+        var finalCash = broker.GetAccountBalance();
+        return new BacktestResult(broker.Trades.ToList(), initialCash, finalCash, equityCurve);
     }
 
     private class AlgorithmContext : IAlgorithmContext
