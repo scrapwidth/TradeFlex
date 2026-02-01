@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using TradeFlex.Abstractions;
+using TradeFlex.BrokerAdapters;
 using TradeFlex.Core;
 
 namespace TradeFlex.Cli;
@@ -13,7 +14,7 @@ public static class ShadowRunner
     public static async Task RunAsync(FileInfo algoFile, string symbol, IBroker broker)
     {
         Console.WriteLine($"Starting Shadow Trading for {symbol}...");
-        
+
         // Load Algorithm
         var asm = Assembly.LoadFrom(algoFile.FullName);
         var algoType = asm.GetTypes().FirstOrDefault(t => typeof(ITradingAlgorithm).IsAssignableFrom(t) && !t.IsAbstract && !t.IsInterface);
@@ -27,12 +28,9 @@ public static class ShadowRunner
 
         // Use injected broker
         var context = new AlgorithmContext(broker);
-        
+
         algorithm.Initialize(context);
 
-        // Simulate Live Feed
-        // In a real scenario, this would connect to a websocket or API.
-        // Here we just generate random bars for demonstration.
         var cancellationTokenSource = new CancellationTokenSource();
         Console.CancelKeyPress += (s, e) =>
         {
@@ -43,27 +41,24 @@ public static class ShadowRunner
 
         try
         {
-            // Normalize symbol for Coinbase (e.g. BTCUSD -> BTC-USD)
-            // Simple heuristic: if no dash and ends with USD, insert dash.
-            var coinbaseSymbol = symbol;
-            if (!symbol.Contains("-") && symbol.EndsWith("USD"))
-            {
-                coinbaseSymbol = symbol.Insert(symbol.Length - 3, "-");
-            }
+            // Always use Alpaca data feed for stocks
+            var config = AlpacaConfiguration.FromEnvironment();
+            var feed = new AlpacaDataFeed(symbol, config);
 
-            var feed = new CoinbaseDataFeed(coinbaseSymbol);
-            
-            await foreach (var bar in feed.GetFeedAsync(cancellationTokenSource.Token))
+            using (feed as IDisposable)
             {
-                Console.WriteLine($"[Market] {bar.Timestamp:HH:mm:ss} {bar.Symbol} @ {bar.Close:F2} (Vol: {bar.Volume})");
-                
-                // Update price only if PaperBroker (AlpacaBroker gets prices from API)
-                if (broker is PaperBroker paperBroker)
+                await foreach (var bar in feed.GetFeedAsync(cancellationTokenSource.Token))
                 {
-                    paperBroker.UpdatePrice(bar.Symbol, bar.Close);
+                    Console.WriteLine($"[Market] {bar.Timestamp:HH:mm:ss} {bar.Symbol} @ {bar.Close:F2} (Vol: {bar.Volume})");
+
+                    // Update price only if PaperBroker (AlpacaBroker gets prices from API)
+                    if (broker is PaperBroker paperBroker)
+                    {
+                        paperBroker.UpdatePrice(bar.Symbol, bar.Close);
+                    }
+
+                    algorithm.OnBar(bar);
                 }
-                
-                algorithm.OnBar(bar);
             }
         }
         catch (OperationCanceledException)

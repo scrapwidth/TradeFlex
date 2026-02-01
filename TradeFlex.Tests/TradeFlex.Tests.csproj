@@ -5,6 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <OutputType>Exe</OutputType>
   </PropertyGroup>
 
   <ItemGroup>
@@ -21,9 +22,8 @@
     <ProjectReference Include="..\TradeFlex.Core\TradeFlex.Core.csproj" />
     <ProjectReference Include="..\TradeFlex.SampleStrategies\TradeFlex.SampleStrategies.csproj" />
     <ProjectReference Include="..\TradeFlex.Backtest\TradeFlex.Backtest.csproj" />
+    <ProjectReference Include="..\TradeFlex.BrokerAdapters\TradeFlex.BrokerAdapters.csproj" />
   </ItemGroup>
-
-
 
   <ItemGroup>
     <Using Include="Xunit" />

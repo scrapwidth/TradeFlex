@@ -29,7 +29,7 @@ If everything works, you should see:
 ✓ Broker created successfully
 ✓ Account balance: $100,000.00
 ✓ Found 0 open position(s)
-✓ BTCUSD position: 0.00000000
+✓ AAPL position: 0.00000000
 
 ✅ All Alpaca integration tests passed!
 ```
@@ -49,20 +49,20 @@ dotnet build TradeFlex.SampleStrategies
 # Run shadow trading with PaperBroker
 dotnet run --project TradeFlex.Cli -- shadow \
   --algo TradeFlex.SampleStrategies/bin/Debug/net9.0/TradeFlex.SampleStrategies.dll \
-  --symbol BTCUSD \
+  --symbol AAPL \
   --broker paper
 ```
 
 **Expected:**
-- No API calls
-- In-memory simulation
+- Uses Alpaca live data feed
+- In-memory broker simulation
 - Orders logged to console only
 
 **To stop:** Press `Ctrl+C`
 
 ### Test 2: AlpacaBroker (Real Paper Trading)
 
-Test the new Alpaca integration:
+Test the Alpaca integration:
 
 ```bash
 # Make sure .env is loaded
@@ -71,7 +71,7 @@ source .env  # Or: export $(cat .env | xargs)
 # Run shadow trading with AlpacaBroker
 dotnet run --project TradeFlex.Cli -- shadow \
   --algo TradeFlex.SampleStrategies/bin/Debug/net9.0/TradeFlex.SampleStrategies.dll \
-  --symbol BTCUSD \
+  --symbol AAPL \
   --broker alpaca
 ```
 
@@ -79,9 +79,10 @@ dotnet run --project TradeFlex.Cli -- shadow \
 ```
 [AlpacaBroker] Connected to Alpaca (Paper Trading)
 [AlpacaBroker] Initial Cash: $100,000.00
-Connected to Coinbase Feed for BTC-USD
-[Market] 17:45:23 BTC-USD @ 95824.15 (Vol: 5)
-[AlpacaBroker] Order submitted: abc123... - Buy 0.11234567 BTCUSD
+[AlpacaDataFeed] Connected to Alpaca Stream for AAPL
+[AlpacaDataFeed] Subscribed to minute bars for AAPL
+[Market] 10:31:00 AAPL @ 178.52 (Vol: 12345)
+[AlpacaBroker] Order submitted: abc123... - Buy 56.02241 AAPL
 ```
 
 **Verify in Dashboard:**
@@ -143,8 +144,15 @@ export $(cat .env | grep -v '^#' | xargs)
 
 **Check:**
 1. Using the paper trading dashboard (not live)
-2. Symbol is valid (BTCUSD should work for crypto)
-3. Orders had valid prices (market orders should fill immediately)
+2. Symbol is valid (AAPL, MSFT, SPY, etc.)
+3. Market is open (9:30 AM - 4:00 PM ET, weekdays)
+
+### No data during shadow trading
+
+**Check:**
+1. Market hours: 9:30 AM - 4:00 PM ET, weekdays
+2. AlpacaDataFeed only yields completed minute bars
+3. Wait for the current minute to complete
 
 ---
 
@@ -193,7 +201,7 @@ Now that the integration test passed, you can:
    ```bash
    dotnet run --project TradeFlex.Cli -- shadow \
      --algo TradeFlex.SampleStrategies/bin/Debug/net9.0/TradeFlex.SampleStrategies.dll \
-     --symbol BTCUSD \
+     --symbol AAPL \
      --broker alpaca
    ```
 
@@ -202,8 +210,10 @@ Now that the integration test passed, you can:
    - Watch orders appear as your algorithm trades
 
 3. **Try different symbols:**
-   - ETHUSD (Ethereum)
-   - Other crypto pairs supported by Alpaca
+   - MSFT (Microsoft)
+   - GOOGL (Alphabet)
+   - SPY (S&P 500 ETF)
+   - Any US stock supported by Alpaca
 
 4. **Create your own strategy:**
    - Copy `SimpleSmaCrossoverAlgorithm.cs`

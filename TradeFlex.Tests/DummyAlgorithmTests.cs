@@ -6,11 +6,9 @@ public class DummyAlgorithmTests
 {
     private sealed class DummyAlgorithm : ITradingAlgorithm
     {
-        public void Initialize() { }
+        public void Initialize(IAlgorithmContext context) { }
 
         public void OnBar(Bar bar) { }
-
-        public void OnEntry(Order order) { }
 
         public void OnExit() { }
 

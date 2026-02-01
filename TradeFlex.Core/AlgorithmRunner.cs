@@ -42,18 +42,21 @@ public static class AlgorithmRunner
     /// <returns>Trades produced by the algorithm.</returns>
     public static List<Trade> Run(ITradingAlgorithm algorithm, IEnumerable<Bar> bars)
     {
-        var trades = new List<Trade>();
+        // Setup Paper Broker for this static run
+        var broker = new PaperBroker(100000m);
+        var context = new AlgorithmContext(broker);
 
-        algorithm.Initialize();
+        algorithm.Initialize(context);
 
         foreach (var bar in bars)
         {
+            broker.UpdatePrice("SAMPLE", bar.Close);
             algorithm.OnBar(bar);
         }
 
         algorithm.OnExit();
 
-        return trades;
+        return new List<Trade>(broker.Trades);
     }
 
     /// <summary>
@@ -68,5 +71,10 @@ public static class AlgorithmRunner
         var algo = CreateAlgorithm<T>(constructorArgs);
         return Run(algo, bars);
     }
-}
 
+    private class AlgorithmContext : IAlgorithmContext
+    {
+        public IBroker Broker { get; }
+        public AlgorithmContext(IBroker broker) => Broker = broker;
+    }
+}

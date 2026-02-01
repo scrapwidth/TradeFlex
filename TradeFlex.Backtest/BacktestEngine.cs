@@ -24,15 +24,19 @@ public sealed class BacktestEngine
     /// </summary>
     /// <param name="algorithm">Algorithm instance.</param>
     /// <param name="dataFile">Parquet file containing minute bars.</param>
+    /// <param name="symbol">The symbol to trade.</param>
     /// <param name="from">Optional start time filter.</param>
     /// <param name="to">Optional end time filter.</param>
     /// <returns>Trades produced by the algorithm.</returns>
-    public async Task<List<Trade>> RunAsync(ITradingAlgorithm algorithm, string dataFile, DateTime? from = null, DateTime? to = null)
+    public async Task<List<Trade>> RunAsync(ITradingAlgorithm algorithm, string dataFile, string symbol, DateTime? from = null, DateTime? to = null)
     {
-        var trades = new List<Trade>();
-        algorithm.Initialize();
+        // Setup Paper Broker
+        var broker = new PaperBroker(100000m); // Default $100k starting cash
+        var context = new AlgorithmContext(broker);
 
-        await foreach (var bar in ParquetBarDataLoader.LoadAsync(dataFile))
+        algorithm.Initialize(context);
+
+        await foreach (var bar in ParquetBarDataLoader.LoadAsync(dataFile, symbol))
         {
             if (from.HasValue && bar.Timestamp < from.Value)
             {
@@ -44,10 +48,17 @@ public sealed class BacktestEngine
             }
 
             _clock.Advance();
+            broker.UpdatePrice(symbol, bar.Close);
             algorithm.OnBar(bar);
         }
 
         algorithm.OnExit();
-        return trades;
+        return new List<Trade>(broker.Trades);
+    }
+
+    private class AlgorithmContext : IAlgorithmContext
+    {
+        public IBroker Broker { get; }
+        public AlgorithmContext(IBroker broker) => Broker = broker;
     }
 }

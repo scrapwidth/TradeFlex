@@ -1,4 +1,4 @@
-# Alpaca Paper Trading Setup Guide
+# Alpaca Setup Guide
 
 ## Prerequisites
 
@@ -37,27 +37,37 @@ source ~/.zshrc  # or source ~/.bashrc
 
 ## Usage
 
-### Shadow Trading with PaperBroker (Default - In-Memory)
+### Download Historical Data
+
+```bash
+dotnet run --project TradeFlex.Cli -- download \
+  --symbol AAPL \
+  --from 2024-01-01 \
+  --to 2024-12-31 \
+  --granularity 1d \
+  --output aapl_2024.parquet
+```
+
+### Shadow Trading with PaperBroker (In-Memory Simulation)
 
 ```bash
 dotnet run --project TradeFlex.Cli -- shadow \
   --algo TradeFlex.SampleStrategies/bin/Debug/net9.0/TradeFlex.SampleStrategies.dll \
-  --symbol BTCUSD \
+  --symbol AAPL \
   --broker paper
 ```
 
 **Features:**
-- ✅ No API keys required
-- ✅ Fully offline simulation
-- ✅ Instant startup
-- ✅ Same behavior as before
+- ✅ Uses Alpaca live data feed
+- ✅ Simulated broker with realistic fees
+- ✅ No real orders submitted
 
 ### Shadow Trading with Alpaca (Real Paper Trading API)
 
 ```bash
 dotnet run --project TradeFlex.Cli -- shadow \
   --algo TradeFlex.SampleStrategies/bin/Debug/net9.0/TradeFlex.SampleStrategies.dll \
-  --symbol BTCUSD \
+  --symbol AAPL \
   --broker alpaca
 ```
 
@@ -71,20 +81,22 @@ dotnet run --project TradeFlex.Cli -- shadow \
 
 ### PaperBroker (In-Memory)
 ```
-Starting Shadow Trading for BTCUSD...
-Connected to Coinbase Feed for BTC-USD
-[Market] 21:57:00 BTC-USD @ 88824.03 (Vol: 3)
-[PaperBroker] Filled Buy 0.11223147 BTC-USD @ 88748.46. Fee: 49.80. Cash: 89593.53
+Starting Shadow Trading for AAPL...
+[AlpacaDataFeed] Connected to Alpaca Stream for AAPL
+[AlpacaDataFeed] Subscribed to minute bars for AAPL
+[Market] 10:31:00 AAPL @ 178.52 (Vol: 12345)
+[PaperBroker] Filled Buy 56.02241 AAPL @ 178.52. Fee: 50.00. Cash: 89950.00
 ```
 
 ### AlpacaBroker (Real API)
 ```
-Starting Shadow Trading for BTCUSD...
+Starting Shadow Trading for AAPL...
 [AlpacaBroker] Connected to Alpaca (Paper Trading)
 [AlpacaBroker] Initial Cash: $100,000.00
-Connected to Coinbase Feed for BTC-USD
-[Market] 21:57:00 BTC-USD @ 88824.03 (Vol: 3)
-[AlpacaBroker] Order submitted: 12345678-abcd-1234-5678-123456789abc - Buy 0.11223147 BTCUSD
+[AlpacaDataFeed] Connected to Alpaca Stream for AAPL
+[AlpacaDataFeed] Subscribed to minute bars for AAPL
+[Market] 10:31:00 AAPL @ 178.52 (Vol: 12345)
+[AlpacaBroker] Order submitted: 12345678-abcd-... - Buy 56.02241 AAPL
 ```
 
 ## Verifying Orders in Alpaca Dashboard
@@ -97,21 +109,12 @@ Connected to Coinbase Feed for BTC-USD
 
 ## Supported Symbols
 
-Currently supports crypto pairs available on both:
-- **Coinbase** (for market data)
-- **Alpaca** (for order execution)
-
-Common symbols:
-- `BTCUSD` - Bitcoin
-- `ETHUSD` - Ethereum
-- Other crypto pairs supported by Alpaca
-
-> [!NOTE]
-> Symbol format differs between providers:
-> - Coinbase uses: `BTC-USD` (with dash)
-> - Alpaca uses: `BTCUSD` (no dash)
-> 
-> TradeFlex automatically normalizes `BTCUSD` → `BTC-USD` for Coinbase feed.
+Any US stock symbol supported by Alpaca:
+- `AAPL` - Apple
+- `MSFT` - Microsoft
+- `GOOGL` - Alphabet
+- `SPY` - S&P 500 ETF
+- Most US stocks and ETFs
 
 ## Troubleshooting
 
@@ -145,15 +148,19 @@ echo $ALPACA_SECRET_KEY
 3. Enable **Fractional Trading**
 4. If you cannot find the setting, you may need to **Reset** your paper account.
 
-> [!IMPORTANT]
-> New Alpaca paper accounts often have fractional trading **disabled by default**. You MUST enable it to trade crypto or fractional shares.
-
 ### Orders not appearing in Alpaca dashboard
 
 **Check:**
 1. Using paper trading keys (not live)
 2. Logged into paper trading dashboard
-3. Symbol is supported by Alpaca (some crypto may be unavailable)
+3. Market is open (9:30 AM - 4:00 PM ET, weekdays)
+
+### No data during shadow trading
+
+**Check:**
+1. Market hours: 9:30 AM - 4:00 PM ET, weekdays
+2. AlpacaDataFeed only yields completed minute bars
+3. Wait for the current minute to complete
 
 ## Architecture
 
@@ -185,12 +192,8 @@ echo $ALPACA_SECRET_KEY
 
 1. **Get Alpaca credentials**: Sign up and generate API keys
 2. **Set environment variables**: Configure your shell profile
-3. **Test with PaperBroker**: Verify existing behavior works
-4. **Test with AlpacaBroker**: Run shadow trading with Alpaca
-5. **Monitor in dashboard**: Watch orders execute in real-time
-
-## Support
-
-For issues or questions:
-- Check Alpaca docs: [docs.alpaca.markets](https://docs.alpaca.markets)
-- Review TradeFlex README: [README.md](file:///Users/michaeldobrzynski/x/TradeFlex/README.md)
+3. **Download historical data**: Test the download command
+4. **Run backtests**: Test strategies on historical data
+5. **Test shadow trading**: Run with paper broker first
+6. **Test with AlpacaBroker**: Run shadow trading with Alpaca
+7. **Monitor in dashboard**: Watch orders execute in real-time

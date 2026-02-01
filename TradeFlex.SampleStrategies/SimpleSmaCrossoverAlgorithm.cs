@@ -1,12 +1,13 @@
 using System.Collections.Generic;
 using TradeFlex.Abstractions;
+using TradeFlex.Core;
 
 namespace TradeFlex.SampleStrategies;
 
 /// <summary>
 /// A minimal moving average crossover strategy for demonstration purposes.
 /// </summary>
-public sealed class SimpleSmaCrossoverAlgorithm : ITradingAlgorithm
+public sealed class SimpleSmaCrossoverAlgorithm : BaseAlgorithm
 {
     private readonly int _fastPeriod;
     private readonly int _slowPeriod;
@@ -14,6 +15,11 @@ public sealed class SimpleSmaCrossoverAlgorithm : ITradingAlgorithm
     private readonly Queue<decimal> _slowWindow = new();
     private decimal _previousFast;
     private decimal _previousSlow;
+
+    /// <summary>
+    /// Creates the algorithm with default moving average lengths (5, 20).
+    /// </summary>
+    public SimpleSmaCrossoverAlgorithm() : this(5, 20) { }
 
     /// <summary>
     /// Creates the algorithm with specified moving average lengths.
@@ -27,8 +33,9 @@ public sealed class SimpleSmaCrossoverAlgorithm : ITradingAlgorithm
     }
 
     /// <inheritdoc />
-    public void Initialize()
+    public override void Initialize(IAlgorithmContext context)
     {
+        base.Initialize(context);
         _fastWindow.Clear();
         _slowWindow.Clear();
         _previousFast = 0;
@@ -36,7 +43,7 @@ public sealed class SimpleSmaCrossoverAlgorithm : ITradingAlgorithm
     }
 
     /// <inheritdoc />
-    public void OnBar(Bar bar)
+    public override void OnBar(Bar bar)
     {
         UpdateWindow(_fastWindow, bar.Close, _fastPeriod);
         UpdateWindow(_slowWindow, bar.Close, _slowPeriod);
@@ -46,11 +53,24 @@ public sealed class SimpleSmaCrossoverAlgorithm : ITradingAlgorithm
 
         if (_previousFast <= _previousSlow && fast > slow)
         {
-            OnEntry(new Order("SAMPLE", 1, bar.Close));
+            // Buy signal: Use 10% of available cash
+            var cash = Broker.GetAccountBalance();
+            var dollarAmount = cash * 0.10m;
+            var quantity = dollarAmount / bar.Close;
+            
+            if (quantity > 0)
+            {
+                Buy(bar.Symbol, quantity);
+            }
         }
         else if (_previousFast >= _previousSlow && fast < slow)
         {
-            OnExit();
+            // Sell signal: Exit entire position
+            var position = Broker.GetPosition(bar.Symbol);
+            if (position > 0)
+            {
+                Sell(bar.Symbol, position);
+            }
         }
 
         _previousFast = fast;
@@ -77,20 +97,4 @@ public sealed class SimpleSmaCrossoverAlgorithm : ITradingAlgorithm
         }
         return count == 0 ? 0 : sum / count;
     }
-
-    /// <inheritdoc />
-    public void OnEntry(Order order)
-    {
-        // In a real implementation this would submit the order via a broker adapter.
-    }
-
-    /// <inheritdoc />
-    public void OnExit()
-    {
-        // Cleanup or exit logic would go here.
-    }
-
-    /// <inheritdoc />
-    public bool OnRiskCheck(Order order) => true;
 }
-

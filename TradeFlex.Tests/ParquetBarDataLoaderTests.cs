@@ -18,9 +18,9 @@ public class ParquetBarDataLoaderTests
 
         var fixtureBars = new[]
         {
-            new Bar(new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc), 1.0m, 1.1m, 0.9m, 1.05m, 1000),
-            new Bar(new DateTime(2024, 1, 1, 0, 1, 0, DateTimeKind.Utc), 1.05m, 1.15m, 1.0m, 1.1m, 1500),
-            new Bar(new DateTime(2024, 1, 1, 0, 2, 0, DateTimeKind.Utc), 1.1m, 1.2m, 1.05m, 1.15m, 1600)
+            new Bar("SAMPLE", new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc), 1.0m, 1.1m, 0.9m, 1.05m, 1000),
+            new Bar("SAMPLE", new DateTime(2024, 1, 1, 0, 1, 0, DateTimeKind.Utc), 1.05m, 1.15m, 1.0m, 1.1m, 1500),
+            new Bar("SAMPLE", new DateTime(2024, 1, 1, 0, 2, 0, DateTimeKind.Utc), 1.1m, 1.2m, 1.05m, 1.15m, 1600)
         };
 
         var schema = new ParquetSchema(
@@ -45,7 +45,7 @@ public class ParquetBarDataLoaderTests
         }
 
         var bars = new List<Bar>();
-        await foreach (var bar in ParquetBarDataLoader.LoadAsync("minute_fixture.parquet"))
+        await foreach (var bar in ParquetBarDataLoader.LoadAsync("minute_fixture.parquet", "SAMPLE"))
         {
             bars.Add(bar);
         }

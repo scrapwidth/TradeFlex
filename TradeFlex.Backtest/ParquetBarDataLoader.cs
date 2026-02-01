@@ -17,8 +17,9 @@ public static class ParquetBarDataLoader
     /// Asynchronously reads bars from a Parquet file under the data directory.
     /// </summary>
     /// <param name="fileName">The file name within the <c>/data</c> directory.</param>
+    /// <param name="symbol">The symbol to assign to the loaded bars.</param>
     /// <returns>An async enumerable of bars.</returns>
-    public static async IAsyncEnumerable<Bar> LoadAsync(string fileName)
+    public static async IAsyncEnumerable<Bar> LoadAsync(string fileName, string symbol)
     {
         var path = Path.Combine(DataDirectory, fileName);
 
@@ -50,7 +51,7 @@ public static class ParquetBarDataLoader
 
             for (int i = 0; i < timestamps.Length; i++)
             {
-                yield return new Bar(timestamps[i], opens[i], highs[i], lows[i], closes[i], volumes[i]);
+                yield return new Bar(symbol, timestamps[i], opens[i], highs[i], lows[i], closes[i], volumes[i]);
             }
         }
     }

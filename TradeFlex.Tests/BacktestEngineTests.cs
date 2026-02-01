@@ -7,19 +7,17 @@ using System.Linq;
 using TradeFlex.Abstractions;
 using TradeFlex.Backtest;
 using TradeFlex.Core;
+using Xunit;
+using System.Threading.Tasks;
 
 namespace TradeFlex.Tests;
 
 public class BacktestEngineTests
 {
-    private sealed class CountingAlgorithm : ITradingAlgorithm
+    private sealed class CountingAlgorithm : BaseAlgorithm
     {
         public int Count { get; private set; }
-        public void Initialize() { }
-        public void OnBar(Bar bar) => Count++;
-        public void OnEntry(Order order) { }
-        public void OnExit() { }
-        public bool OnRiskCheck(Order order) => true;
+        public override void OnBar(Bar bar) => Count++;
     }
 
     [Fact]
@@ -31,8 +29,8 @@ public class BacktestEngineTests
 
         var bars = new[]
         {
-            new Bar(new DateTime(2024,1,1,0,0,0,DateTimeKind.Utc),1,1,1,1,1),
-            new Bar(new DateTime(2024,1,1,0,1,0,DateTimeKind.Utc),1,1,1,1,1),
+            new Bar("SAMPLE", new DateTime(2024,1,1,0,0,0,DateTimeKind.Utc),1,1,1,1,1),
+            new Bar("SAMPLE", new DateTime(2024,1,1,0,1,0,DateTimeKind.Utc),1,1,1,1,1),
         };
 
         var schema = new Parquet.Schema.ParquetSchema(
@@ -58,7 +56,7 @@ public class BacktestEngineTests
         var algo = new CountingAlgorithm();
         var clock = new SimulationClock(bars[0].Timestamp, TimeSpan.FromMinutes(1));
         var engine = new BacktestEngine(clock);
-        var trades = await engine.RunAsync(algo, "engine_fixture.parquet");
+        var trades = await engine.RunAsync(algo, "engine_fixture.parquet", "SAMPLE");
 
         Assert.Equal(2, algo.Count);
         Assert.Empty(trades);

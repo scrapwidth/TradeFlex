@@ -14,4 +14,8 @@
     <ProjectReference Include="..\TradeFlex.Backtest\TradeFlex.Backtest.csproj" />
     <ProjectReference Include="..\TradeFlex.SampleStrategies\TradeFlex.SampleStrategies.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TradeFlex.BrokerAdapters\TradeFlex.BrokerAdapters.csproj" />
+  </ItemGroup>
 </Project>
